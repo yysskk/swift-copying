@@ -10,15 +10,18 @@ public struct CopyingMacro: MemberMacro {
         conformingTo protocols: [TypeSyntax],
         in context: some MacroExpansionContext
     ) throws -> [DeclSyntax] {
-        // Get the type name
+        // Get the type name and generic parameters
         let typeName: String
+        let fullTypeName: String
         let isClass: Bool
 
         if let structDecl = declaration.as(StructDeclSyntax.self) {
             typeName = structDecl.name.text
+            fullTypeName = makeFullTypeName(name: typeName, genericParameterClause: structDecl.genericParameterClause)
             isClass = false
         } else if let classDecl = declaration.as(ClassDeclSyntax.self) {
             typeName = classDecl.name.text
+            fullTypeName = makeFullTypeName(name: typeName, genericParameterClause: classDecl.genericParameterClause)
             isClass = true
         } else {
             throw CopyingMacroError.notStructOrClass
@@ -91,7 +94,7 @@ public struct CopyingMacro: MemberMacro {
             /// - Returns: A new instance with the specified modifications.
             public func copying(
                 \(raw: parameters)
-            ) -> \(raw: typeName) {
+            ) -> \(raw: fullTypeName) {
                 \(raw: isClass ? "return " : "")\(raw: typeName)(
                     \(raw: arguments)
                 )
@@ -99,6 +102,14 @@ public struct CopyingMacro: MemberMacro {
             """
 
         return [copyingMethod]
+    }
+
+    private static func makeFullTypeName(name: String, genericParameterClause: GenericParameterClauseSyntax?) -> String {
+        guard let genericParameterClause = genericParameterClause else {
+            return name
+        }
+        let genericParameters = genericParameterClause.parameters.map { $0.name.text }.joined(separator: ", ")
+        return "\(name)<\(genericParameters)>"
     }
 }
 

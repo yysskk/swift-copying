@@ -32,6 +32,7 @@ let package = Package(
         .testTarget(
             name: "CopyingTests",
             dependencies: [
+                "Copying",
                 "CopyingMacros",
                 .product(name: "SwiftSyntaxMacrosTestSupport", package: "swift-syntax"),
             ]
