@@ -238,4 +238,105 @@ struct CopyingTests {
         )
         #endif
     }
+
+    @Test("Copying macro with generic struct")
+    func copyingMacroWithGenericStruct() {
+        #if canImport(CopyingMacros)
+        assertMacroExpansion(
+            """
+            @Copying
+            struct Box<T> {
+                let value: T
+            }
+            """,
+            expandedSource: """
+            struct Box<T> {
+                let value: T
+
+                /// Creates a copy of this instance with the specified properties modified.
+                /// - Parameters:
+                ///   - value: The new value for `value`, or `nil` to keep the current value.
+                /// - Returns: A new instance with the specified modifications.
+                public func copying(
+                    value: T? = nil
+                ) -> Box<T> {
+                    Box(
+                        value: value ?? self.value
+                    )
+                }
+            }
+            """,
+            macros: testMacros
+        )
+        #endif
+    }
+
+    @Test("Copying macro with multiple generic parameters")
+    func copyingMacroWithMultipleGenericParameters() {
+        #if canImport(CopyingMacros)
+        assertMacroExpansion(
+            """
+            @Copying
+            struct Pair<K, V> {
+                let key: K
+                let value: V
+            }
+            """,
+            expandedSource: """
+            struct Pair<K, V> {
+                let key: K
+                let value: V
+
+                /// Creates a copy of this instance with the specified properties modified.
+                /// - Parameters:
+                ///   - key: The new value for `key`, or `nil` to keep the current value.
+                ///   - value: The new value for `value`, or `nil` to keep the current value.
+                /// - Returns: A new instance with the specified modifications.
+                public func copying(
+                    key: K? = nil,
+                        value: V? = nil
+                ) -> Pair<K, V> {
+                    Pair(
+                        key: key ?? self.key,
+                            value: value ?? self.value
+                    )
+                }
+            }
+            """,
+            macros: testMacros
+        )
+        #endif
+    }
+
+    @Test("Copying macro with generic class")
+    func copyingMacroWithGenericClass() {
+        #if canImport(CopyingMacros)
+        assertMacroExpansion(
+            """
+            @Copying
+            class Container<T> {
+                let item: T
+            }
+            """,
+            expandedSource: """
+            class Container<T> {
+                let item: T
+
+                /// Creates a copy of this instance with the specified properties modified.
+                /// - Parameters:
+                ///   - item: The new value for `item`, or `nil` to keep the current value.
+                /// - Returns: A new instance with the specified modifications.
+                public func copying(
+                    item: T? = nil
+                ) -> Container<T> {
+                    return Container(
+                        item: item ?? self.item
+                    )
+                }
+            }
+            """,
+            macros: testMacros
+        )
+        #endif
+    }
 }
