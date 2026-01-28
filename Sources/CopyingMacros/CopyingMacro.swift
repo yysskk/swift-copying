@@ -23,8 +23,12 @@ public struct CopyingMacro: MemberMacro {
             typeName = classDecl.name.text
             fullTypeName = makeFullTypeName(name: typeName, genericParameterClause: classDecl.genericParameterClause)
             isClass = true
+        } else if let actorDecl = declaration.as(ActorDeclSyntax.self) {
+            typeName = actorDecl.name.text
+            fullTypeName = makeFullTypeName(name: typeName, genericParameterClause: actorDecl.genericParameterClause)
+            isClass = true
         } else {
-            throw CopyingMacroError.notStructOrClass
+            throw CopyingMacroError.notStructOrClassOrActor
         }
 
         // Extract stored properties
@@ -121,13 +125,13 @@ struct StoredProperty {
 }
 
 enum CopyingMacroError: Error, CustomStringConvertible {
-    case notStructOrClass
+    case notStructOrClassOrActor
     case noStoredProperties
 
     var description: String {
         switch self {
-        case .notStructOrClass:
-            return "@Copying can only be applied to struct or class declarations"
+        case .notStructOrClassOrActor:
+            return "@Copying can only be applied to struct, class, or actor declarations"
         case .noStoredProperties:
             return "@Copying requires at least one stored property with explicit type annotation"
         }

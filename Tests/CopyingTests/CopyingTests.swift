@@ -118,4 +118,41 @@ struct CopyingTests {
         #expect(copiedWithNil.value == 42)
         #expect(copiedWithValue.value == 100)
     }
+
+    @Test("Generated code for actor compiles and works correctly")
+    func actorCompileTest() async {
+        @Copying
+        actor Counter {
+            let id: Int
+            let value: Int
+
+            init(id: Int, value: Int) {
+                self.id = id
+                self.value = value
+            }
+        }
+
+        let counter = Counter(id: 1, value: 0)
+        let copied = await counter.copying(value: 10)
+
+        #expect(copied.id == 1)
+        #expect(copied.value == 10)
+    }
+
+    @Test("Generated code for generic actor compiles and works correctly")
+    func genericActorCompileTest() async {
+        @Copying
+        actor Storage<T: Sendable> {
+            let data: T
+
+            init(data: T) {
+                self.data = data
+            }
+        }
+
+        let storage = Storage(data: "Hello")
+        let copied = await storage.copying(data: "World")
+
+        #expect(copied.data == "World")
+    }
 }
