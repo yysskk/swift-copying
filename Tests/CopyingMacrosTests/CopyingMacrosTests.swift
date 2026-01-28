@@ -316,4 +316,69 @@ struct CopyingMacrosTests {
             macros: testMacros
         )
     }
+
+    @Test("Copying macro with actor")
+    func copyingMacroWithActor() {
+        assertMacroExpansionForTesting(
+            """
+            @Copying
+            actor Counter {
+                let id: Int
+                var value: Int
+            }
+            """,
+            expandedSource: """
+            actor Counter {
+                let id: Int
+                var value: Int
+
+                /// Creates a copy of this instance with the specified properties modified.
+                /// - Parameters:
+                ///   - id: The new value for `id`, or `nil` to keep the current value.
+                ///   - value: The new value for `value`, or `nil` to keep the current value.
+                /// - Returns: A new instance with the specified modifications.
+                public func copying(
+                    id: Int? = nil,
+                    value: Int? = nil
+                ) -> Counter {
+                    return Counter(
+                        id: id ?? self.id,
+                        value: value ?? self.value
+                    )
+                }
+            }
+            """,
+            macros: testMacros
+        )
+    }
+
+    @Test("Copying macro with generic actor")
+    func copyingMacroWithGenericActor() {
+        assertMacroExpansionForTesting(
+            """
+            @Copying
+            actor Storage<T: Sendable> {
+                let data: T
+            }
+            """,
+            expandedSource: """
+            actor Storage<T: Sendable> {
+                let data: T
+
+                /// Creates a copy of this instance with the specified properties modified.
+                /// - Parameters:
+                ///   - data: The new value for `data`, or `nil` to keep the current value.
+                /// - Returns: A new instance with the specified modifications.
+                public func copying(
+                    data: T? = nil
+                ) -> Storage<T> {
+                    return Storage(
+                        data: data ?? self.data
+                    )
+                }
+            }
+            """,
+            macros: testMacros
+        )
+    }
 }
