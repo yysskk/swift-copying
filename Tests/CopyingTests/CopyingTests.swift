@@ -1,320 +1,121 @@
-import SwiftSyntaxMacros
-import SwiftSyntaxMacrosTestSupport
+import Copying
 import Testing
 
-import CopyingMacros
-
-let testMacros: [String: Macro.Type] = [
-    "Copying": CopyingMacro.self,
-]
-
-@Suite("CopyingMacro Tests")
+@Suite("Copying Tests")
 struct CopyingTests {
-    @Test("Copying macro with struct")
-    func copyingMacroWithStruct() {
-        assertMacroExpansionForTesting(
-            """
-            @Copying
-            struct Person {
-                let name: String
-                let age: Int
-            }
-            """,
-            expandedSource: """
-            struct Person {
-                let name: String
-                let age: Int
+    @Test("Generated code for struct compiles and works correctly")
+    func structCompileTest() {
+        @Copying
+        struct Person {
+            let name: String
+            let age: Int
+        }
 
-                /// Creates a copy of this instance with the specified properties modified.
-                /// - Parameters:
-                ///   - name: The new value for `name`, or `nil` to keep the current value.
-                ///   - age: The new value for `age`, or `nil` to keep the current value.
-                /// - Returns: A new instance with the specified modifications.
-                public func copying(
-                    name: String? = nil,
-                    age: Int? = nil
-                ) -> Person {
-                    Person(
-                        name: name ?? self.name,
-                        age: age ?? self.age
-                    )
-                }
-            }
-            """,
-            macros: testMacros
-        )
+        let person = Person(name: "John", age: 30)
+        let copied = person.copying(age: 31)
+
+        #expect(copied.name == "John")
+        #expect(copied.age == 31)
     }
 
-    @Test("Copying macro with class")
-    func copyingMacroWithClass() {
-        assertMacroExpansionForTesting(
-            """
-            @Copying
-            class User {
-                let id: Int
-                var username: String
-            }
-            """,
-            expandedSource: """
-            class User {
-                let id: Int
-                var username: String
+    @Test("Generated code for class compiles and works correctly")
+    func classCompileTest() {
+        @Copying
+        class User {
+            let id: Int
+            let username: String
 
-                /// Creates a copy of this instance with the specified properties modified.
-                /// - Parameters:
-                ///   - id: The new value for `id`, or `nil` to keep the current value.
-                ///   - username: The new value for `username`, or `nil` to keep the current value.
-                /// - Returns: A new instance with the specified modifications.
-                public func copying(
-                    id: Int? = nil,
-                    username: String? = nil
-                ) -> User {
-                    return User(
-                        id: id ?? self.id,
-                        username: username ?? self.username
-                    )
-                }
+            init(id: Int, username: String) {
+                self.id = id
+                self.username = username
             }
-            """,
-            macros: testMacros
-        )
+        }
+
+        let user = User(id: 1, username: "john")
+        let copied = user.copying(username: "jane")
+
+        #expect(copied.id == 1)
+        #expect(copied.username == "jane")
     }
 
-    @Test("Copying macro with optional properties")
-    func copyingMacroWithOptionalProperties() {
-        assertMacroExpansionForTesting(
-            """
-            @Copying
-            struct Config {
-                let name: String
-                let value: Int?
-            }
-            """,
-            expandedSource: """
-            struct Config {
-                let name: String
-                let value: Int?
+    @Test("Generated code for generic struct compiles and works correctly")
+    func genericStructCompileTest() {
+        @Copying
+        struct Box<T> {
+            let value: T
+        }
 
-                /// Creates a copy of this instance with the specified properties modified.
-                /// - Parameters:
-                ///   - name: The new value for `name`, or `nil` to keep the current value.
-                ///   - value: The new value for `value`, or `nil` to keep the current value.
-                /// - Returns: A new instance with the specified modifications.
-                public func copying(
-                    name: String? = nil,
-                    value: Int?? = nil
-                ) -> Config {
-                    Config(
-                        name: name ?? self.name,
-                        value: value ?? self.value
-                    )
-                }
-            }
-            """,
-            macros: testMacros
-        )
+        let intBox = Box(value: 42)
+        let copiedIntBox = intBox.copying(value: 100)
+
+        #expect(copiedIntBox.value == 100)
+
+        let stringBox = Box(value: "hello")
+        let copiedStringBox = stringBox.copying(value: "world")
+
+        #expect(copiedStringBox.value == "world")
     }
 
-    @Test("Copying macro skips computed properties")
-    func copyingMacroSkipsComputedProperties() {
-        assertMacroExpansionForTesting(
-            """
-            @Copying
-            struct Rectangle {
-                let width: Double
-                let height: Double
-                var area: Double {
-                    width * height
-                }
-            }
-            """,
-            expandedSource: """
-            struct Rectangle {
-                let width: Double
-                let height: Double
-                var area: Double {
-                    width * height
-                }
+    @Test("Generated code for generic struct with multiple parameters compiles and works correctly")
+    func multipleGenericParametersCompileTest() {
+        @Copying
+        struct Pair<K, V> {
+            let key: K
+            let value: V
+        }
 
-                /// Creates a copy of this instance with the specified properties modified.
-                /// - Parameters:
-                ///   - width: The new value for `width`, or `nil` to keep the current value.
-                ///   - height: The new value for `height`, or `nil` to keep the current value.
-                /// - Returns: A new instance with the specified modifications.
-                public func copying(
-                    width: Double? = nil,
-                    height: Double? = nil
-                ) -> Rectangle {
-                    Rectangle(
-                        width: width ?? self.width,
-                        height: height ?? self.height
-                    )
-                }
-            }
-            """,
-            macros: testMacros
-        )
+        let pair = Pair(key: "name", value: 123)
+        let copiedPair = pair.copying(value: 456)
+
+        #expect(copiedPair.key == "name")
+        #expect(copiedPair.value == 456)
     }
 
-    @Test("Copying macro skips static properties")
-    func copyingMacroSkipsStaticProperties() {
-        assertMacroExpansionForTesting(
-            """
-            @Copying
-            struct Counter {
-                static let maxValue: Int = 100
-                let value: Int
-            }
-            """,
-            expandedSource: """
-            struct Counter {
-                static let maxValue: Int = 100
-                let value: Int
+    @Test("Generated code for generic class compiles and works correctly")
+    func genericClassCompileTest() {
+        @Copying
+        class Container<T> {
+            let item: T
 
-                /// Creates a copy of this instance with the specified properties modified.
-                /// - Parameters:
-                ///   - value: The new value for `value`, or `nil` to keep the current value.
-                /// - Returns: A new instance with the specified modifications.
-                public func copying(
-                    value: Int? = nil
-                ) -> Counter {
-                    Counter(
-                        value: value ?? self.value
-                    )
-                }
+            init(item: T) {
+                self.item = item
             }
-            """,
-            macros: testMacros
-        )
+        }
+
+        let container = Container(item: "Hello")
+        let copiedContainer = container.copying(item: "World")
+
+        #expect(copiedContainer.item == "World")
     }
 
-    @Test("Copying macro with generic types")
-    func copyingMacroWithGenericType() {
-        assertMacroExpansionForTesting(
-            """
-            @Copying
-            struct Container {
-                let items: [String]
-                let mapping: [String: Int]
-            }
-            """,
-            expandedSource: """
-            struct Container {
-                let items: [String]
-                let mapping: [String: Int]
+    @Test("Copying without arguments returns equivalent instance")
+    func copyingWithoutArguments() {
+        @Copying
+        struct Point {
+            let x: Int
+            let y: Int
+        }
 
-                /// Creates a copy of this instance with the specified properties modified.
-                /// - Parameters:
-                ///   - items: The new value for `items`, or `nil` to keep the current value.
-                ///   - mapping: The new value for `mapping`, or `nil` to keep the current value.
-                /// - Returns: A new instance with the specified modifications.
-                public func copying(
-                    items: [String]? = nil,
-                    mapping: [String: Int]? = nil
-                ) -> Container {
-                    Container(
-                        items: items ?? self.items,
-                        mapping: mapping ?? self.mapping
-                    )
-                }
-            }
-            """,
-            macros: testMacros
-        )
+        let point = Point(x: 10, y: 20)
+        let copied = point.copying()
+
+        #expect(copied.x == point.x)
+        #expect(copied.y == point.y)
     }
 
-    @Test("Copying macro with generic struct")
-    func copyingMacroWithGenericStruct() {
-        assertMacroExpansionForTesting(
-            """
-            @Copying
-            struct Box<T> {
-                let value: T
-            }
-            """,
-            expandedSource: """
-            struct Box<T> {
-                let value: T
+    @Test("Copying with optional property works correctly")
+    func optionalPropertyCompileTest() {
+        @Copying
+        struct Config {
+            let name: String
+            let value: Int?
+        }
 
-                /// Creates a copy of this instance with the specified properties modified.
-                /// - Parameters:
-                ///   - value: The new value for `value`, or `nil` to keep the current value.
-                /// - Returns: A new instance with the specified modifications.
-                public func copying(
-                    value: T? = nil
-                ) -> Box<T> {
-                    Box(
-                        value: value ?? self.value
-                    )
-                }
-            }
-            """,
-            macros: testMacros
-        )
-    }
+        let config = Config(name: "test", value: 42)
+        let copiedWithNil = config.copying(value: nil)
+        let copiedWithValue = config.copying(value: 100)
 
-    @Test("Copying macro with multiple generic parameters")
-    func copyingMacroWithMultipleGenericParameters() {
-        assertMacroExpansionForTesting(
-            """
-            @Copying
-            struct Pair<K, V> {
-                let key: K
-                let value: V
-            }
-            """,
-            expandedSource: """
-            struct Pair<K, V> {
-                let key: K
-                let value: V
-
-                /// Creates a copy of this instance with the specified properties modified.
-                /// - Parameters:
-                ///   - key: The new value for `key`, or `nil` to keep the current value.
-                ///   - value: The new value for `value`, or `nil` to keep the current value.
-                /// - Returns: A new instance with the specified modifications.
-                public func copying(
-                    key: K? = nil,
-                    value: V? = nil
-                ) -> Pair<K, V> {
-                    Pair(
-                        key: key ?? self.key,
-                        value: value ?? self.value
-                    )
-                }
-            }
-            """,
-            macros: testMacros
-        )
-    }
-
-    @Test("Copying macro with generic class")
-    func copyingMacroWithGenericClass() {
-        assertMacroExpansionForTesting(
-            """
-            @Copying
-            class Container<T> {
-                let item: T
-            }
-            """,
-            expandedSource: """
-            class Container<T> {
-                let item: T
-
-                /// Creates a copy of this instance with the specified properties modified.
-                /// - Parameters:
-                ///   - item: The new value for `item`, or `nil` to keep the current value.
-                /// - Returns: A new instance with the specified modifications.
-                public func copying(
-                    item: T? = nil
-                ) -> Container<T> {
-                    return Container(
-                        item: item ?? self.item
-                    )
-                }
-            }
-            """,
-            macros: testMacros
-        )
+        #expect(copiedWithNil.value == 42)
+        #expect(copiedWithValue.value == 100)
     }
 }

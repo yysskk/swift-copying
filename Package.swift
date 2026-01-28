@@ -30,12 +30,15 @@ let package = Package(
         .target(name: "Copying", dependencies: ["CopyingMacros"]),
         .executableTarget(name: "CopyingClient", dependencies: ["Copying"]),
         .testTarget(
-            name: "CopyingTests",
+            name: "CopyingMacrosTests",
             dependencies: [
-                "Copying",
                 "CopyingMacros",
                 .product(name: "SwiftSyntaxMacrosTestSupport", package: "swift-syntax"),
             ]
+        ),
+        .testTarget(
+            name: "CopyingTests",
+            dependencies: ["Copying"]
         ),
     ]
 )
