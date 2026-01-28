@@ -79,13 +79,15 @@ public struct CopyingMacro: MemberMacro {
         }
 
         // Generate the copying method
-        let parameters = storedProperties.map { property in
-            "\(property.name): \(property.type)? = nil"
-        }.joined(separator: ",\n        ")
+        let parametersList = storedProperties.map { property in
+            "    \(property.name): \(property.type)? = nil"
+        }
+        let parameters = parametersList.joined(separator: ",\n")
 
-        let arguments = storedProperties.map { property in
-            "\(property.name): \(property.name) ?? self.\(property.name)"
-        }.joined(separator: ",\n            ")
+        let argumentsList = storedProperties.map { property in
+            "        \(property.name): \(property.name) ?? self.\(property.name)"
+        }
+        let arguments = argumentsList.joined(separator: ",\n")
 
         let copyingMethod: DeclSyntax = """
             /// Creates a copy of this instance with the specified properties modified.
@@ -93,10 +95,10 @@ public struct CopyingMacro: MemberMacro {
             \(raw: storedProperties.map { "///   - \($0.name): The new value for `\($0.name)`, or `nil` to keep the current value." }.joined(separator: "\n"))
             /// - Returns: A new instance with the specified modifications.
             public func copying(
-                \(raw: parameters)
+            \(raw: parameters)
             ) -> \(raw: fullTypeName) {
                 \(raw: isClass ? "return " : "")\(raw: typeName)(
-                    \(raw: arguments)
+            \(raw: arguments)
                 )
             }
             """

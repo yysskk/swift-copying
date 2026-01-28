@@ -1,23 +1,18 @@
-import SwiftSyntax
-import SwiftSyntaxBuilder
 import SwiftSyntaxMacros
 import SwiftSyntaxMacrosTestSupport
 import Testing
 
-#if canImport(CopyingMacros)
 import CopyingMacros
 
 let testMacros: [String: Macro.Type] = [
     "Copying": CopyingMacro.self,
 ]
-#endif
 
 @Suite("CopyingMacro Tests")
 struct CopyingTests {
     @Test("Copying macro with struct")
     func copyingMacroWithStruct() {
-        #if canImport(CopyingMacros)
-        assertMacroExpansion(
+        assertMacroExpansionForTesting(
             """
             @Copying
             struct Person {
@@ -37,24 +32,22 @@ struct CopyingTests {
                 /// - Returns: A new instance with the specified modifications.
                 public func copying(
                     name: String? = nil,
-                        age: Int? = nil
+                    age: Int? = nil
                 ) -> Person {
                     Person(
                         name: name ?? self.name,
-                            age: age ?? self.age
+                        age: age ?? self.age
                     )
                 }
             }
             """,
             macros: testMacros
         )
-        #endif
     }
 
     @Test("Copying macro with class")
     func copyingMacroWithClass() {
-        #if canImport(CopyingMacros)
-        assertMacroExpansion(
+        assertMacroExpansionForTesting(
             """
             @Copying
             class User {
@@ -74,24 +67,22 @@ struct CopyingTests {
                 /// - Returns: A new instance with the specified modifications.
                 public func copying(
                     id: Int? = nil,
-                        username: String? = nil
+                    username: String? = nil
                 ) -> User {
                     return User(
                         id: id ?? self.id,
-                            username: username ?? self.username
+                        username: username ?? self.username
                     )
                 }
             }
             """,
             macros: testMacros
         )
-        #endif
     }
 
     @Test("Copying macro with optional properties")
     func copyingMacroWithOptionalProperties() {
-        #if canImport(CopyingMacros)
-        assertMacroExpansion(
+        assertMacroExpansionForTesting(
             """
             @Copying
             struct Config {
@@ -111,24 +102,22 @@ struct CopyingTests {
                 /// - Returns: A new instance with the specified modifications.
                 public func copying(
                     name: String? = nil,
-                        value: Int?? = nil
+                    value: Int?? = nil
                 ) -> Config {
                     Config(
                         name: name ?? self.name,
-                            value: value ?? self.value
+                        value: value ?? self.value
                     )
                 }
             }
             """,
             macros: testMacros
         )
-        #endif
     }
 
     @Test("Copying macro skips computed properties")
     func copyingMacroSkipsComputedProperties() {
-        #if canImport(CopyingMacros)
-        assertMacroExpansion(
+        assertMacroExpansionForTesting(
             """
             @Copying
             struct Rectangle {
@@ -154,24 +143,22 @@ struct CopyingTests {
                 /// - Returns: A new instance with the specified modifications.
                 public func copying(
                     width: Double? = nil,
-                        height: Double? = nil
+                    height: Double? = nil
                 ) -> Rectangle {
                     Rectangle(
                         width: width ?? self.width,
-                            height: height ?? self.height
+                        height: height ?? self.height
                     )
                 }
             }
             """,
             macros: testMacros
         )
-        #endif
     }
 
     @Test("Copying macro skips static properties")
     func copyingMacroSkipsStaticProperties() {
-        #if canImport(CopyingMacros)
-        assertMacroExpansion(
+        assertMacroExpansionForTesting(
             """
             @Copying
             struct Counter {
@@ -199,13 +186,11 @@ struct CopyingTests {
             """,
             macros: testMacros
         )
-        #endif
     }
 
     @Test("Copying macro with generic types")
     func copyingMacroWithGenericType() {
-        #if canImport(CopyingMacros)
-        assertMacroExpansion(
+        assertMacroExpansionForTesting(
             """
             @Copying
             struct Container {
@@ -225,24 +210,22 @@ struct CopyingTests {
                 /// - Returns: A new instance with the specified modifications.
                 public func copying(
                     items: [String]? = nil,
-                        mapping: [String: Int]? = nil
+                    mapping: [String: Int]? = nil
                 ) -> Container {
                     Container(
                         items: items ?? self.items,
-                            mapping: mapping ?? self.mapping
+                        mapping: mapping ?? self.mapping
                     )
                 }
             }
             """,
             macros: testMacros
         )
-        #endif
     }
 
     @Test("Copying macro with generic struct")
     func copyingMacroWithGenericStruct() {
-        #if canImport(CopyingMacros)
-        assertMacroExpansion(
+        assertMacroExpansionForTesting(
             """
             @Copying
             struct Box<T> {
@@ -268,13 +251,11 @@ struct CopyingTests {
             """,
             macros: testMacros
         )
-        #endif
     }
 
     @Test("Copying macro with multiple generic parameters")
     func copyingMacroWithMultipleGenericParameters() {
-        #if canImport(CopyingMacros)
-        assertMacroExpansion(
+        assertMacroExpansionForTesting(
             """
             @Copying
             struct Pair<K, V> {
@@ -294,24 +275,22 @@ struct CopyingTests {
                 /// - Returns: A new instance with the specified modifications.
                 public func copying(
                     key: K? = nil,
-                        value: V? = nil
+                    value: V? = nil
                 ) -> Pair<K, V> {
                     Pair(
                         key: key ?? self.key,
-                            value: value ?? self.value
+                        value: value ?? self.value
                     )
                 }
             }
             """,
             macros: testMacros
         )
-        #endif
     }
 
     @Test("Copying macro with generic class")
     func copyingMacroWithGenericClass() {
-        #if canImport(CopyingMacros)
-        assertMacroExpansion(
+        assertMacroExpansionForTesting(
             """
             @Copying
             class Container<T> {
@@ -337,6 +316,5 @@ struct CopyingTests {
             """,
             macros: testMacros
         )
-        #endif
     }
 }
