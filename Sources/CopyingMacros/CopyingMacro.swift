@@ -1,4 +1,5 @@
 import SwiftCompilerPlugin
+import SwiftDiagnostics
 import SwiftSyntax
 import SwiftSyntaxBuilder
 import SwiftSyntaxMacros
@@ -30,6 +31,9 @@ public struct CopyingMacro: MemberMacro {
         } else {
             throw CopyingMacroError.notStructOrClassOrActor
         }
+
+        // Extract access level from declaration modifiers
+        let accessLevel = extractAccessLevel(from: declaration.modifiers)
 
         // Extract stored properties
         let storedProperties = declaration.memberBlock.members.compactMap { member -> StoredProperty? in
@@ -70,6 +74,12 @@ public struct CopyingMacro: MemberMacro {
 
             // Get the type annotation
             guard let typeAnnotation = binding.typeAnnotation else {
+                context.diagnose(
+                    Diagnostic(
+                        node: Syntax(binding),
+                        message: CopyingDiagnosticMessage.missingTypeAnnotation(propertyName: propertyName)
+                    )
+                )
                 return nil
             }
 
@@ -98,7 +108,7 @@ public struct CopyingMacro: MemberMacro {
             /// - Parameters:
             \(raw: storedProperties.map { "///   - \($0.name): The new value for `\($0.name)`, or `nil` to keep the current value." }.joined(separator: "\n"))
             /// - Returns: A new instance with the specified modifications.
-            public func copying(
+            \(raw: accessLevel)func copying(
             \(raw: parameters)
             ) -> \(raw: fullTypeName) {
                 \(raw: isClass ? "return " : "")\(raw: typeName)(
@@ -117,11 +127,53 @@ public struct CopyingMacro: MemberMacro {
         let genericParameters = genericParameterClause.parameters.map { $0.name.text }.joined(separator: ", ")
         return "\(name)<\(genericParameters)>"
     }
+
+    private static func extractAccessLevel(from modifiers: DeclModifierListSyntax) -> String {
+        let accessKeywords: Set<String> = ["public", "open", "package", "internal", "private", "fileprivate"]
+        guard let modifier = modifiers.first(where: { accessKeywords.contains($0.name.text) }) else {
+            return ""
+        }
+        let keyword = modifier.name.text
+        // open -> public (copying method shouldn't be open)
+        if keyword == "open" {
+            return "public "
+        }
+        // internal is the default, no keyword needed
+        if keyword == "internal" {
+            return ""
+        }
+        return "\(keyword) "
+    }
 }
 
 struct StoredProperty {
     let name: String
     let type: String
+}
+
+enum CopyingDiagnosticMessage: DiagnosticMessage {
+    case missingTypeAnnotation(propertyName: String)
+
+    var message: String {
+        switch self {
+        case .missingTypeAnnotation(let propertyName):
+            return "Property '\(propertyName)' is missing a type annotation and will be excluded from the copying method"
+        }
+    }
+
+    var diagnosticID: MessageID {
+        switch self {
+        case .missingTypeAnnotation:
+            return MessageID(domain: "CopyingMacro", id: "missingTypeAnnotation")
+        }
+    }
+
+    var severity: DiagnosticSeverity {
+        switch self {
+        case .missingTypeAnnotation:
+            return .warning
+        }
+    }
 }
 
 enum CopyingMacroError: Error, CustomStringConvertible {

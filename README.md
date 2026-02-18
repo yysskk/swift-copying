@@ -1,6 +1,6 @@
 # swift-copying
 
-A Swift Macro that generates a `copying` method for struct and class types, similar to Kotlin's `copy` function for data classes.
+A Swift Macro that generates a `copying` method for struct, class, and actor types, similar to Kotlin's `copy` function for data classes.
 
 ## Installation
 
@@ -68,13 +68,87 @@ let user = User(id: 1, username: "johndoe", isActive: true)
 let inactiveUser = user.copying(isActive: false)
 ```
 
+### Works with actors
+
+```swift
+@Copying
+actor Counter {
+    let id: Int
+    let value: Int
+
+    init(id: Int, value: Int) {
+        self.id = id
+        self.value = value
+    }
+}
+
+let counter = Counter(id: 1, value: 0)
+let updated = await counter.copying(value: 10)
+```
+
+### Works with generics
+
+```swift
+@Copying
+struct Box<T> {
+    let value: T
+}
+
+let intBox = Box(value: 42)
+let stringBox = intBox.copying(value: "hello") // Box<String> — type changes with the value
+
+@Copying
+struct Pair<K, V> {
+    let key: K
+    let value: V
+}
+
+let pair = Pair(key: "name", value: 123)
+let updated = pair.copying(value: 456)
+```
+
+### Optional properties
+
+For optional properties, the parameter type becomes a double optional (`T??`) to distinguish between "keep current value" and "set to nil":
+
+```swift
+@Copying
+struct Config {
+    let name: String
+    let value: Int?
+}
+
+let config = Config(name: "test", value: 42)
+
+// Passing nil (or omitting) keeps the current value
+let same = config.copying(value: nil)
+// same.value == 42
+
+// Use .some(nil) to explicitly set to nil
+let cleared = config.copying(value: .some(nil))
+// cleared.value == nil
+
+// Set a new value normally
+let updated = config.copying(value: 100)
+// updated.value == 100
+```
+
 ## Features
 
-- Works with both `struct` and `class` types
+- Works with `struct`, `class`, and `actor` types
+- Supports generic types with constraints
 - Only specify the properties you want to change
 - Automatically skips computed properties and static properties
 - Supports optional properties
+- Matches the access level of the declared type
 - Generates documentation comments
+- Emits warnings for properties without type annotations
+
+## Limitations
+
+- Properties must have explicit type annotations (e.g., `let name: String`). Properties using type inference (e.g., `let name = "default"`) will be excluded with a warning.
+- Computed properties and static properties are automatically skipped.
+- The generated method calls the type's memberwise initializer (for structs) or `init` (for classes/actors), so all stored properties must be included in the initializer.
 
 ## Requirements
 
