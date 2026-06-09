@@ -31,6 +31,8 @@ public struct CopyingMacro: MemberMacro {
             throw CopyingMacroError.notStructOrClassOrActor
         }
 
+        let accessLevel = makeAccessLevelModifier(modifiers: declaration.modifiers)
+
         // Extract stored properties
         let storedProperties = declaration.memberBlock.members.compactMap { member -> StoredProperty? in
             guard let varDecl = member.decl.as(VariableDeclSyntax.self) else {
@@ -98,7 +100,7 @@ public struct CopyingMacro: MemberMacro {
             /// - Parameters:
             \(raw: storedProperties.map { "///   - \($0.name): The new value for `\($0.name)`, or `nil` to keep the current value." }.joined(separator: "\n"))
             /// - Returns: A new instance with the specified modifications.
-            public func copying(
+            \(raw: accessLevel)func copying(
             \(raw: parameters)
             ) -> \(raw: fullTypeName) {
                 \(raw: isClass ? "return " : "")\(raw: typeName)(
@@ -108,6 +110,23 @@ public struct CopyingMacro: MemberMacro {
             """
 
         return [copyingMethod]
+    }
+
+    /// Returns the access-level modifier (with a trailing space) to apply to the
+    /// generated method, derived from the type's declaration modifiers.
+    ///
+    /// Returns an empty string when the type has no explicit access-level modifier
+    /// (i.e. the default `internal`). `open` is mapped to `public` because the
+    /// generated `copying` method is a factory that never needs to be overridden.
+    private static func makeAccessLevelModifier(modifiers: DeclModifierListSyntax) -> String {
+        let accessLevelKeywords: Set<String> = [
+            "open", "public", "package", "internal", "fileprivate", "private",
+        ]
+        guard let modifier = modifiers.first(where: { accessLevelKeywords.contains($0.name.text) }) else {
+            return ""
+        }
+        let keyword = modifier.name.text == "open" ? "public" : modifier.name.text
+        return "\(keyword) "
     }
 
     private static func makeFullTypeName(name: String, genericParameterClause: GenericParameterClauseSyntax?) -> String {
