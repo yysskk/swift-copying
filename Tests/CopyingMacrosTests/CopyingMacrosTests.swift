@@ -29,7 +29,7 @@ struct CopyingMacrosTests {
                 ///   - name: The new value for `name`, or `nil` to keep the current value.
                 ///   - age: The new value for `age`, or `nil` to keep the current value.
                 /// - Returns: A new instance with the specified modifications.
-                public func copying(
+                func copying(
                     name: String? = nil,
                     age: Int? = nil
                 ) -> Person {
@@ -64,7 +64,7 @@ struct CopyingMacrosTests {
                 ///   - id: The new value for `id`, or `nil` to keep the current value.
                 ///   - username: The new value for `username`, or `nil` to keep the current value.
                 /// - Returns: A new instance with the specified modifications.
-                public func copying(
+                func copying(
                     id: Int? = nil,
                     username: String? = nil
                 ) -> User {
@@ -99,7 +99,7 @@ struct CopyingMacrosTests {
                 ///   - name: The new value for `name`, or `nil` to keep the current value.
                 ///   - value: The new value for `value`, or `nil` to keep the current value.
                 /// - Returns: A new instance with the specified modifications.
-                public func copying(
+                func copying(
                     name: String? = nil,
                     value: Int?? = nil
                 ) -> Config {
@@ -140,7 +140,7 @@ struct CopyingMacrosTests {
                 ///   - width: The new value for `width`, or `nil` to keep the current value.
                 ///   - height: The new value for `height`, or `nil` to keep the current value.
                 /// - Returns: A new instance with the specified modifications.
-                public func copying(
+                func copying(
                     width: Double? = nil,
                     height: Double? = nil
                 ) -> Rectangle {
@@ -174,7 +174,7 @@ struct CopyingMacrosTests {
                 /// - Parameters:
                 ///   - value: The new value for `value`, or `nil` to keep the current value.
                 /// - Returns: A new instance with the specified modifications.
-                public func copying(
+                func copying(
                     value: Int? = nil
                 ) -> Counter {
                     Counter(
@@ -207,7 +207,7 @@ struct CopyingMacrosTests {
                 ///   - items: The new value for `items`, or `nil` to keep the current value.
                 ///   - mapping: The new value for `mapping`, or `nil` to keep the current value.
                 /// - Returns: A new instance with the specified modifications.
-                public func copying(
+                func copying(
                     items: [String]? = nil,
                     mapping: [String: Int]? = nil
                 ) -> Container {
@@ -239,7 +239,7 @@ struct CopyingMacrosTests {
                 /// - Parameters:
                 ///   - value: The new value for `value`, or `nil` to keep the current value.
                 /// - Returns: A new instance with the specified modifications.
-                public func copying(
+                func copying(
                     value: T? = nil
                 ) -> Box<T> {
                     Box(
@@ -272,7 +272,7 @@ struct CopyingMacrosTests {
                 ///   - key: The new value for `key`, or `nil` to keep the current value.
                 ///   - value: The new value for `value`, or `nil` to keep the current value.
                 /// - Returns: A new instance with the specified modifications.
-                public func copying(
+                func copying(
                     key: K? = nil,
                     value: V? = nil
                 ) -> Pair<K, V> {
@@ -304,7 +304,7 @@ struct CopyingMacrosTests {
                 /// - Parameters:
                 ///   - item: The new value for `item`, or `nil` to keep the current value.
                 /// - Returns: A new instance with the specified modifications.
-                public func copying(
+                func copying(
                     item: T? = nil
                 ) -> Container<T> {
                     return Container(
@@ -337,7 +337,7 @@ struct CopyingMacrosTests {
                 ///   - id: The new value for `id`, or `nil` to keep the current value.
                 ///   - value: The new value for `value`, or `nil` to keep the current value.
                 /// - Returns: A new instance with the specified modifications.
-                public func copying(
+                func copying(
                     id: Int? = nil,
                     value: Int? = nil
                 ) -> Counter {
@@ -369,11 +369,201 @@ struct CopyingMacrosTests {
                 /// - Parameters:
                 ///   - data: The new value for `data`, or `nil` to keep the current value.
                 /// - Returns: A new instance with the specified modifications.
-                public func copying(
+                func copying(
                     data: T? = nil
                 ) -> Storage<T> {
                     return Storage(
                         data: data ?? self.data
+                    )
+                }
+            }
+            """,
+            macros: testMacros
+        )
+    }
+
+    @Test("Copying macro inherits public access level")
+    func copyingMacroWithPublicStruct() {
+        assertMacroExpansionForTesting(
+            """
+            @Copying
+            public struct Person {
+                let name: String
+                let age: Int
+            }
+            """,
+            expandedSource: """
+            public struct Person {
+                let name: String
+                let age: Int
+
+                /// Creates a copy of this instance with the specified properties modified.
+                /// - Parameters:
+                ///   - name: The new value for `name`, or `nil` to keep the current value.
+                ///   - age: The new value for `age`, or `nil` to keep the current value.
+                /// - Returns: A new instance with the specified modifications.
+                public func copying(
+                    name: String? = nil,
+                    age: Int? = nil
+                ) -> Person {
+                    Person(
+                        name: name ?? self.name,
+                        age: age ?? self.age
+                    )
+                }
+            }
+            """,
+            macros: testMacros
+        )
+    }
+
+    @Test("Copying macro inherits package access level")
+    func copyingMacroWithPackageStruct() {
+        assertMacroExpansionForTesting(
+            """
+            @Copying
+            package struct Person {
+                let name: String
+            }
+            """,
+            expandedSource: """
+            package struct Person {
+                let name: String
+
+                /// Creates a copy of this instance with the specified properties modified.
+                /// - Parameters:
+                ///   - name: The new value for `name`, or `nil` to keep the current value.
+                /// - Returns: A new instance with the specified modifications.
+                package func copying(
+                    name: String? = nil
+                ) -> Person {
+                    Person(
+                        name: name ?? self.name
+                    )
+                }
+            }
+            """,
+            macros: testMacros
+        )
+    }
+
+    @Test("Copying macro inherits private access level")
+    func copyingMacroWithPrivateStruct() {
+        assertMacroExpansionForTesting(
+            """
+            @Copying
+            private struct Person {
+                let name: String
+            }
+            """,
+            expandedSource: """
+            private struct Person {
+                let name: String
+
+                /// Creates a copy of this instance with the specified properties modified.
+                /// - Parameters:
+                ///   - name: The new value for `name`, or `nil` to keep the current value.
+                /// - Returns: A new instance with the specified modifications.
+                private func copying(
+                    name: String? = nil
+                ) -> Person {
+                    Person(
+                        name: name ?? self.name
+                    )
+                }
+            }
+            """,
+            macros: testMacros
+        )
+    }
+
+    @Test("Copying macro inherits fileprivate access level")
+    func copyingMacroWithFileprivateStruct() {
+        assertMacroExpansionForTesting(
+            """
+            @Copying
+            fileprivate struct Person {
+                let name: String
+            }
+            """,
+            expandedSource: """
+            fileprivate struct Person {
+                let name: String
+
+                /// Creates a copy of this instance with the specified properties modified.
+                /// - Parameters:
+                ///   - name: The new value for `name`, or `nil` to keep the current value.
+                /// - Returns: A new instance with the specified modifications.
+                fileprivate func copying(
+                    name: String? = nil
+                ) -> Person {
+                    Person(
+                        name: name ?? self.name
+                    )
+                }
+            }
+            """,
+            macros: testMacros
+        )
+    }
+
+    @Test("Copying macro maps open to public")
+    func copyingMacroWithOpenClass() {
+        assertMacroExpansionForTesting(
+            """
+            @Copying
+            open class User {
+                let id: Int
+                var username: String
+            }
+            """,
+            expandedSource: """
+            open class User {
+                let id: Int
+                var username: String
+
+                /// Creates a copy of this instance with the specified properties modified.
+                /// - Parameters:
+                ///   - id: The new value for `id`, or `nil` to keep the current value.
+                ///   - username: The new value for `username`, or `nil` to keep the current value.
+                /// - Returns: A new instance with the specified modifications.
+                public func copying(
+                    id: Int? = nil,
+                    username: String? = nil
+                ) -> User {
+                    return User(
+                        id: id ?? self.id,
+                        username: username ?? self.username
+                    )
+                }
+            }
+            """,
+            macros: testMacros
+        )
+    }
+
+    @Test("Copying macro picks access level among multiple modifiers")
+    func copyingMacroWithPublicFinalClass() {
+        assertMacroExpansionForTesting(
+            """
+            @Copying
+            public final class User {
+                let id: Int
+            }
+            """,
+            expandedSource: """
+            public final class User {
+                let id: Int
+
+                /// Creates a copy of this instance with the specified properties modified.
+                /// - Parameters:
+                ///   - id: The new value for `id`, or `nil` to keep the current value.
+                /// - Returns: A new instance with the specified modifications.
+                public func copying(
+                    id: Int? = nil
+                ) -> User {
+                    return User(
+                        id: id ?? self.id
                     )
                 }
             }
