@@ -103,6 +103,36 @@ struct CopyingTests {
         #expect(copied.y == point.y)
     }
 
+    @Test("Generated code for multiple bindings in a single declaration works correctly")
+    func multipleBindingsCompileTest() {
+        @Copying
+        struct Point {
+            let x: Int, y: Int
+        }
+
+        let point = Point(x: 10, y: 20)
+        let copied = point.copying(y: 99)
+
+        #expect(copied.x == 10)
+        #expect(copied.y == 99)
+    }
+
+    @Test("Generated code for multiple bindings of different types works correctly")
+    func multipleBindingsOfDifferentTypesCompileTest() {
+        @Copying
+        struct Person {
+            let name: String, age: Int
+            let email: String
+        }
+
+        let person = Person(name: "John", age: 30, email: "john@example.com")
+        let copied = person.copying(age: 31)
+
+        #expect(copied.name == "John")
+        #expect(copied.age == 31)
+        #expect(copied.email == "john@example.com")
+    }
+
     @Test("Copying with optional property works correctly")
     func optionalPropertyCompileTest() {
         @Copying

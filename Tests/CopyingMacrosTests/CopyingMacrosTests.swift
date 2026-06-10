@@ -187,6 +187,77 @@ struct CopyingMacrosTests {
         )
     }
 
+    @Test("Copying macro with multiple bindings in a single declaration")
+    func copyingMacroWithMultipleBindingsInSingleDeclaration() {
+        assertMacroExpansionForTesting(
+            """
+            @Copying
+            struct Point {
+                let x: Int, y: Int
+            }
+            """,
+            expandedSource: """
+            struct Point {
+                let x: Int, y: Int
+
+                /// Creates a copy of this instance with the specified properties modified.
+                /// - Parameters:
+                ///   - x: The new value for `x`, or `nil` to keep the current value.
+                ///   - y: The new value for `y`, or `nil` to keep the current value.
+                /// - Returns: A new instance with the specified modifications.
+                func copying(
+                    x: (Int)? = nil,
+                    y: (Int)? = nil
+                ) -> Point {
+                    Point(
+                        x: x ?? self.x,
+                        y: y ?? self.y
+                    )
+                }
+            }
+            """,
+            macros: testMacros
+        )
+    }
+
+    @Test("Copying macro with multiple bindings of different types mixed with single bindings")
+    func copyingMacroWithMultipleBindingsOfDifferentTypes() {
+        assertMacroExpansionForTesting(
+            """
+            @Copying
+            struct Person {
+                let name: String, age: Int
+                let email: String
+            }
+            """,
+            expandedSource: """
+            struct Person {
+                let name: String, age: Int
+                let email: String
+
+                /// Creates a copy of this instance with the specified properties modified.
+                /// - Parameters:
+                ///   - name: The new value for `name`, or `nil` to keep the current value.
+                ///   - age: The new value for `age`, or `nil` to keep the current value.
+                ///   - email: The new value for `email`, or `nil` to keep the current value.
+                /// - Returns: A new instance with the specified modifications.
+                func copying(
+                    name: (String)? = nil,
+                    age: (Int)? = nil,
+                    email: (String)? = nil
+                ) -> Person {
+                    Person(
+                        name: name ?? self.name,
+                        age: age ?? self.age,
+                        email: email ?? self.email
+                    )
+                }
+            }
+            """,
+            macros: testMacros
+        )
+    }
+
     @Test("Copying macro with generic types")
     func copyingMacroWithGenericType() {
         assertMacroExpansionForTesting(

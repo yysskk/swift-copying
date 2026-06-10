@@ -34,50 +34,50 @@ public struct CopyingMacro: MemberMacro {
         let accessLevel = makeAccessLevelModifier(modifiers: declaration.modifiers)
 
         // Extract stored properties
-        let storedProperties = declaration.memberBlock.members.compactMap { member -> StoredProperty? in
+        let storedProperties = declaration.memberBlock.members.flatMap { member -> [StoredProperty] in
             guard let varDecl = member.decl.as(VariableDeclSyntax.self) else {
-                return nil
+                return []
             }
 
-            // Skip computed properties and static properties
+            // Skip static properties
             guard !varDecl.modifiers.contains(where: { $0.name.text == "static" }) else {
-                return nil
+                return []
             }
 
-            // Check if it's a stored property (has no accessor block, or only has willSet/didSet)
-            guard let binding = varDecl.bindings.first else {
-                return nil
-            }
-
-            if let accessorBlock = binding.accessorBlock {
-                // Check if it's a computed property
-                switch accessorBlock.accessors {
-                case .getter:
-                    return nil
-                case .accessors(let accessors):
-                    let hasGetOrSet = accessors.contains { accessor in
-                        accessor.accessorSpecifier.text == "get" || accessor.accessorSpecifier.text == "set"
-                    }
-                    if hasGetOrSet {
+            // A single declaration can declare multiple properties on one line,
+            // e.g. `let x: Int, y: Int`. Iterate over every binding so none are dropped.
+            return varDecl.bindings.compactMap { binding -> StoredProperty? in
+                // Check if it's a stored property (has no accessor block, or only has willSet/didSet)
+                if let accessorBlock = binding.accessorBlock {
+                    // Check if it's a computed property
+                    switch accessorBlock.accessors {
+                    case .getter:
                         return nil
+                    case .accessors(let accessors):
+                        let hasGetOrSet = accessors.contains { accessor in
+                            accessor.accessorSpecifier.text == "get" || accessor.accessorSpecifier.text == "set"
+                        }
+                        if hasGetOrSet {
+                            return nil
+                        }
                     }
                 }
+
+                guard let pattern = binding.pattern.as(IdentifierPatternSyntax.self) else {
+                    return nil
+                }
+
+                let propertyName = pattern.identifier.text
+
+                // Get the type annotation
+                guard let typeAnnotation = binding.typeAnnotation else {
+                    return nil
+                }
+
+                let propertyType = typeAnnotation.type.trimmedDescription
+
+                return StoredProperty(name: propertyName, type: propertyType)
             }
-
-            guard let pattern = binding.pattern.as(IdentifierPatternSyntax.self) else {
-                return nil
-            }
-
-            let propertyName = pattern.identifier.text
-
-            // Get the type annotation
-            guard let typeAnnotation = binding.typeAnnotation else {
-                return nil
-            }
-
-            let propertyType = typeAnnotation.type.trimmedDescription
-
-            return StoredProperty(name: propertyName, type: propertyType)
         }
 
         guard !storedProperties.isEmpty else {
