@@ -86,7 +86,7 @@ public struct CopyingMacro: MemberMacro {
 
         // Generate the copying method
         let parametersList = storedProperties.map { property in
-            "    \(property.name): \(property.type)? = nil"
+            "    \(property.name): (\(property.type))? = nil"
         }
         let parameters = parametersList.joined(separator: ",\n")
 

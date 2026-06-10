@@ -155,4 +155,35 @@ struct CopyingTests {
 
         #expect(copied.data == "World")
     }
+
+    @Test("Generated code with function type property compiles and works correctly")
+    func functionTypePropertyCompileTest() {
+        @Copying
+        struct Handler {
+            let transform: (Int) -> String
+            let completion: () -> Void
+        }
+
+        let handler = Handler(transform: { "value: \($0)" }, completion: {})
+        let copied = handler.copying(transform: { "number: \($0)" })
+
+        #expect(handler.transform(1) == "value: 1")
+        #expect(copied.transform(1) == "number: 1")
+        // The unchanged property keeps the original closure.
+        #expect(handler.copying().transform(2) == "value: 2")
+    }
+
+    @Test("Generated code with existential type property compiles and works correctly")
+    func existentialTypePropertyCompileTest() {
+        @Copying
+        struct Wrapper {
+            let value: any CustomStringConvertible
+        }
+
+        let wrapper = Wrapper(value: 42)
+        let copied = wrapper.copying(value: "hello")
+
+        #expect(wrapper.value.description == "42")
+        #expect(copied.value.description == "hello")
+    }
 }
