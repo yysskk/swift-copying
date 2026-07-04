@@ -9,15 +9,71 @@ on:
       - main
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
 jobs:
-  test:
+  linux:
+    name: Linux (Swift ${{ matrix.swift }})
+    runs-on: ubuntu-latest
+    container: swift:${{ matrix.swift }}
+    strategy:
+      fail-fast: false
+      matrix:
+        swift: ["6.2", "6.3"]
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Cache SwiftPM build
+        uses: actions/cache@v4
+        with:
+          path: .build
+          key: linux-swift-${{ matrix.swift }}-spm-${{ hashFiles('Package.resolved') }}
+          restore-keys: |
+            linux-swift-${{ matrix.swift }}-spm-
+
+      - name: Show Swift version
+        run: swift --version
+
+      - name: Build
+        run: swift build
+
+      - name: Run tests
+        run: swift test
+
+  macos:
+    name: macOS
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Cache SwiftPM build
+        uses: actions/cache@v4
+        with:
+          path: .build
+          key: macos-spm-${{ hashFiles('Package.resolved') }}
+          restore-keys: |
+            macos-spm-
+
+      - name: Show Swift version
+        run: swift --version
+
+      - name: Build
+        run: swift build
+
+      - name: Run tests
+        run: swift test
+
+  dependency-floor:
+    name: Linux (Swift 6.2, swift-syntax 600.0.0)
     runs-on: ubuntu-latest
     container: swift:6.2
     steps:
       - uses: actions/checkout@v7
 
-      - name: Show Swift version
-        run: swift --version
+      - name: Pin swift-syntax to the minimum supported version
+        run: swift package resolve swift-syntax --version 600.0.0
 
       - name: Build
         run: swift build

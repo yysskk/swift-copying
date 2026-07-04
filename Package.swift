@@ -5,19 +5,19 @@ import CompilerPluginSupport
 
 let package = Package(
     name: "swift-copying",
-    platforms: [.macOS(.v10_15), .iOS(.v13), .tvOS(.v13), .watchOS(.v6), .macCatalyst(.v13)],
+    platforms: [
+        .macOS(.v10_15), .iOS(.v13), .tvOS(.v13), .watchOS(.v6), .visionOS(.v1), .macCatalyst(.v13),
+    ],
     products: [
         .library(
             name: "Copying",
             targets: ["Copying"]
         ),
-        .executable(
-            name: "CopyingClient",
-            targets: ["CopyingClient"]
-        ),
     ],
     dependencies: [
-        .package(url: "https://github.com/swiftlang/swift-syntax.git", from: "603.0.1"),
+        // A wide range so this package resolves alongside other macro packages
+        // regardless of which stable swift-syntax major they pin.
+        .package(url: "https://github.com/swiftlang/swift-syntax.git", "600.0.0"..<"605.0.0"),
     ],
     targets: [
         .macro(
