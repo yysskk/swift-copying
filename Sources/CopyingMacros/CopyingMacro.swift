@@ -34,7 +34,7 @@ public struct CopyingMacro: MemberMacro {
         let accessLevel = makeAccessLevelModifier(modifiers: declaration.modifiers)
 
         // Extract stored properties
-        let storedProperties = declaration.memberBlock.members.flatMap { member -> [StoredProperty] in
+        let storedProperties = try declaration.memberBlock.members.flatMap { member -> [StoredProperty] in
             guard let varDecl = member.decl.as(VariableDeclSyntax.self) else {
                 return []
             }
@@ -44,9 +44,16 @@ public struct CopyingMacro: MemberMacro {
                 return []
             }
 
+            // Skip lazy properties: reading one from `copying` would require a
+            // mutating getter on structs, and a fresh copy recomputes the value
+            // on demand anyway.
+            guard !varDecl.modifiers.contains(where: { $0.name.text == "lazy" }) else {
+                return []
+            }
+
             // A single declaration can declare multiple properties on one line,
             // e.g. `let x: Int, y: Int`. Iterate over every binding so none are dropped.
-            return varDecl.bindings.compactMap { binding -> StoredProperty? in
+            return try varDecl.bindings.compactMap { binding -> StoredProperty? in
                 // Check if it's a stored property (has no accessor block, or only has willSet/didSet)
                 if let accessorBlock = binding.accessorBlock {
                     // Check if it's a computed property
@@ -69,9 +76,20 @@ public struct CopyingMacro: MemberMacro {
 
                 let propertyName = pattern.identifier.text
 
-                // Get the type annotation
-                guard let typeAnnotation = binding.typeAnnotation else {
+                // A `let` with an initial value can never hold a different value
+                // and is excluded from the memberwise initializer, so it cannot
+                // participate in a copy.
+                if varDecl.bindingSpecifier.text == "let", binding.initializer != nil {
                     return nil
+                }
+
+                // The type of the remaining properties must be spelled out: it
+                // becomes the parameter type of `copying`, and a macro only sees
+                // syntax, so it cannot infer a type from the initializer. Dropping
+                // the property instead would make every copy silently reset it to
+                // its default value.
+                guard let typeAnnotation = binding.typeAnnotation else {
+                    throw CopyingMacroError.missingTypeAnnotation(propertyName: propertyName)
                 }
 
                 let propertyType = typeAnnotation.type.trimmedDescription
@@ -146,6 +164,7 @@ struct StoredProperty {
 enum CopyingMacroError: Error, CustomStringConvertible {
     case notStructOrClassOrActor
     case noStoredProperties
+    case missingTypeAnnotation(propertyName: String)
 
     var description: String {
         switch self {
@@ -153,6 +172,8 @@ enum CopyingMacroError: Error, CustomStringConvertible {
             return "@Copying can only be applied to struct, class, or actor declarations"
         case .noStoredProperties:
             return "@Copying requires at least one stored property with explicit type annotation"
+        case .missingTypeAnnotation(let propertyName):
+            return "@Copying requires an explicit type annotation for '\(propertyName)'"
         }
     }
 }

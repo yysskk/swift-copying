@@ -1,4 +1,5 @@
 import SwiftSyntaxMacros
+import SwiftSyntaxMacrosGenericTestSupport
 import Testing
 
 import CopyingMacros
@@ -183,6 +184,125 @@ struct CopyingMacrosTests {
                 }
             }
             """,
+            macros: testMacros
+        )
+    }
+
+    @Test("Copying macro skips let constants with initial values")
+    func copyingMacroSkipsInitializedLetConstants() {
+        assertMacroExpansionForTesting(
+            """
+            @Copying
+            struct Counter {
+                let maxValue: Int = 100
+                var value: Int
+            }
+            """,
+            expandedSource: """
+            struct Counter {
+                let maxValue: Int = 100
+                var value: Int
+
+                /// Creates a copy of this instance with the specified properties modified.
+                /// - Parameters:
+                ///   - value: The new value for `value`, or `nil` to keep the current value.
+                /// - Returns: A new instance with the specified modifications.
+                func copying(
+                    value: (Int)? = nil
+                ) -> Counter {
+                    Counter(
+                        value: value ?? self.value
+                    )
+                }
+            }
+            """,
+            macros: testMacros
+        )
+    }
+
+    @Test("Copying macro keeps uninitialized bindings in a declaration with an initialized let")
+    func copyingMacroKeepsUninitializedBindingNextToInitializedLet() {
+        assertMacroExpansionForTesting(
+            """
+            @Copying
+            struct Sample {
+                let a: Int = 1, b: Int
+            }
+            """,
+            expandedSource: """
+            struct Sample {
+                let a: Int = 1, b: Int
+
+                /// Creates a copy of this instance with the specified properties modified.
+                /// - Parameters:
+                ///   - b: The new value for `b`, or `nil` to keep the current value.
+                /// - Returns: A new instance with the specified modifications.
+                func copying(
+                    b: (Int)? = nil
+                ) -> Sample {
+                    Sample(
+                        b: b ?? self.b
+                    )
+                }
+            }
+            """,
+            macros: testMacros
+        )
+    }
+
+    @Test("Copying macro skips lazy properties")
+    func copyingMacroSkipsLazyProperties() {
+        assertMacroExpansionForTesting(
+            """
+            @Copying
+            struct DataStore {
+                var name: String
+                lazy var cache: [String] = []
+            }
+            """,
+            expandedSource: """
+            struct DataStore {
+                var name: String
+                lazy var cache: [String] = []
+
+                /// Creates a copy of this instance with the specified properties modified.
+                /// - Parameters:
+                ///   - name: The new value for `name`, or `nil` to keep the current value.
+                /// - Returns: A new instance with the specified modifications.
+                func copying(
+                    name: (String)? = nil
+                ) -> DataStore {
+                    DataStore(
+                        name: name ?? self.name
+                    )
+                }
+            }
+            """,
+            macros: testMacros
+        )
+    }
+
+    @Test("Copying macro requires an explicit type annotation")
+    func copyingMacroRequiresTypeAnnotation() {
+        assertMacroExpansionForTesting(
+            """
+            @Copying
+            struct Counter {
+                var count = 0
+            }
+            """,
+            expandedSource: """
+            struct Counter {
+                var count = 0
+            }
+            """,
+            diagnostics: [
+                DiagnosticSpec(
+                    message: "@Copying requires an explicit type annotation for 'count'",
+                    line: 1,
+                    column: 1
+                )
+            ],
             macros: testMacros
         )
     }
