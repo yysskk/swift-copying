@@ -15,7 +15,6 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
-      id-token: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
@@ -47,8 +46,8 @@ jobs:
 
             This workflow re-runs on every push to the PR, so avoid duplicate reviews:
             - Before posting anything, fetch the feedback you already left on this PR with
-              `gh pr view <PR NUMBER above> --comments` and
-              `gh api repos/<REPO above>/pulls/<PR NUMBER above>/comments`.
+              `gh pr view ${{ github.event.pull_request.number }} --comments` and
+              `gh api repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/comments`.
             - Do NOT repeat a point that is already covered by an existing comment. Comment only on
               code that changed since your last review, or on issues that are still unresolved.
 
@@ -65,10 +64,10 @@ jobs:
             - At the end of the review, run `gh pr review` exactly once to record your overall verdict.
               Put a brief summary in `--body` (a separate `gh pr comment` for the summary is not needed).
             - If there are no bugs, security issues, or serious design problems and the PR is safe to merge,
-              run `gh pr review <PR NUMBER above> --approve --body "<summary with the approval rationale>"`
+              run `gh pr review ${{ github.event.pull_request.number }} --approve --body "<summary with the approval rationale>"`
               to approve the PR. Minor suggestions may be left as inline comments.
             - If there is even one bug, security issue, or serious design problem that must be fixed,
-              run `gh pr review <PR NUMBER above> --request-changes --body "<summary of the requested changes and fix direction>"`
+              run `gh pr review ${{ github.event.pull_request.number }} --request-changes --body "<summary of the requested changes and fix direction>"`
               to request changes.
             - approve and request-changes are mutually exclusive. Run exactly one of them, exactly once, at the end of the review.
 
