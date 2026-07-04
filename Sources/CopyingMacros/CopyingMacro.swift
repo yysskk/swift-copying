@@ -116,8 +116,13 @@ public struct CopyingMacro: MemberMacro {
     /// generated method, derived from the type's declaration modifiers.
     ///
     /// Returns an empty string when the type has no explicit access-level modifier
-    /// (i.e. the default `internal`). `open` is mapped to `public` because the
-    /// generated `copying` method is a factory that never needs to be overridden.
+    /// (i.e. the default `internal`). Two levels are adjusted so that the method
+    /// is callable from everywhere the type itself is visible:
+    /// - `open` is mapped to `public` because the generated method is a factory
+    ///   that never needs to be overridden.
+    /// - `private` is mapped to `fileprivate` because a `private` member would be
+    ///   confined to the type declaration itself, while a `private` type remains
+    ///   usable in the rest of the file.
     private static func makeAccessLevelModifier(modifiers: DeclModifierListSyntax) -> String {
         let accessLevelKeywords: Set<String> = [
             "open", "public", "package", "internal", "fileprivate", "private",
@@ -125,7 +130,15 @@ public struct CopyingMacro: MemberMacro {
         guard let modifier = modifiers.first(where: { accessLevelKeywords.contains($0.name.text) }) else {
             return ""
         }
-        let keyword = modifier.name.text == "open" ? "public" : modifier.name.text
+        let keyword: String
+        switch modifier.name.text {
+        case "open":
+            keyword = "public"
+        case "private":
+            keyword = "fileprivate"
+        default:
+            keyword = modifier.name.text
+        }
         return "\(keyword) "
     }
 
