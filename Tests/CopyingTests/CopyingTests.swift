@@ -133,6 +133,50 @@ struct CopyingTests {
         #expect(copied.email == "john@example.com")
     }
 
+    @Test("Generated code for struct with initialized let constants compiles and works correctly")
+    func initializedLetConstantCompileTest() {
+        @Copying
+        struct Counter {
+            let maxValue: Int = 100
+            var value: Int
+        }
+
+        let counter = Counter(value: 1)
+        let copied = counter.copying(value: 5)
+
+        #expect(copied.maxValue == 100)
+        #expect(copied.value == 5)
+    }
+
+    @Test("Generated code for struct with an initialized let sharing a declaration compiles and works correctly")
+    func initializedLetInMixedDeclarationCompileTest() {
+        @Copying
+        struct Sample {
+            let a: Int = 1, b: Int
+        }
+
+        let sample = Sample(b: 2)
+        let copied = sample.copying(b: 3)
+
+        #expect(copied.a == 1)
+        #expect(copied.b == 3)
+    }
+
+    @Test("Generated code for struct with lazy properties compiles and works correctly")
+    func lazyPropertyCompileTest() {
+        @Copying
+        struct DataStore {
+            var name: String
+            lazy var cache: [String] = ["cached"]
+        }
+
+        let store = DataStore(name: "original")
+        var copied = store.copying(name: "copy")
+
+        #expect(copied.name == "copy")
+        #expect(copied.cache == ["cached"])
+    }
+
     @Test("Copying with optional property works correctly")
     func optionalPropertyCompileTest() {
         @Copying
