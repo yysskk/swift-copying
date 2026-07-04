@@ -638,7 +638,7 @@ struct CopyingMacrosTests {
         )
     }
 
-    @Test("Copying macro inherits private access level")
+    @Test("Copying macro maps private to fileprivate")
     func copyingMacroWithPrivateStruct() {
         assertMacroExpansionForTesting(
             """
@@ -655,7 +655,7 @@ struct CopyingMacrosTests {
                 /// - Parameters:
                 ///   - name: The new value for `name`, or `nil` to keep the current value.
                 /// - Returns: A new instance with the specified modifications.
-                private func copying(
+                fileprivate func copying(
                     name: (String)? = nil
                 ) -> Person {
                     Person(

@@ -1,8 +1,23 @@
 import Copying
 import Testing
 
+// A file-scope private type: the generated method must be callable from
+// everywhere the type itself is visible, i.e. anywhere in this file.
+@Copying
+private struct PrivatePerson {
+    let name: String
+}
+
 @Suite("Copying Tests")
 struct CopyingTests {
+    @Test("Generated method of a private type is callable where the type is visible")
+    func privateTypeCompileTest() {
+        let person = PrivatePerson(name: "John")
+        let copied = person.copying(name: "Jane")
+
+        #expect(copied.name == "Jane")
+    }
+
     @Test("Generated code for struct compiles and works correctly")
     func structCompileTest() {
         @Copying
