@@ -73,7 +73,12 @@ jobs:
       - uses: actions/checkout@v7
 
       - name: Pin swift-syntax to the minimum supported version
-        run: swift package resolve swift-syntax --version 600.0.0
+        # Resolve the graph first so the targeted downgrade can find the
+        # dependency: on a fresh checkout `resolve <name> --version` fails
+        # until the package has been resolved once.
+        run: |
+          swift package resolve
+          swift package resolve swift-syntax --version 600.0.0
 
       - name: Build
         run: swift build
