@@ -1,7 +1,7 @@
 // swift-tools-version: 6.2
 
-import PackageDescription
 import CompilerPluginSupport
+import PackageDescription
 
 let package = Package(
     name: "swift-copying",
@@ -12,12 +12,12 @@ let package = Package(
         .library(
             name: "Copying",
             targets: ["Copying"]
-        ),
+        )
     ],
     dependencies: [
         // A wide range so this package resolves alongside other macro packages
         // regardless of which stable swift-syntax major they pin.
-        .package(url: "https://github.com/swiftlang/swift-syntax.git", "600.0.0"..<"605.0.0"),
+        .package(url: "https://github.com/swiftlang/swift-syntax.git", "600.0.0"..<"605.0.0")
     ],
     targets: [
         .macro(
