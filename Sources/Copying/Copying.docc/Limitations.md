@@ -14,6 +14,7 @@ These properties are left out of `copying` without any diagnostic, because copyi
 - **Computed properties**, whether written as a single expression, an explicit `get`, or a `get`/`set` pair. Properties that only observe changes with `willSet`/`didSet` are still stored and *are* included.
 - **`lazy` properties.** Reading one inside `copying` would require a mutating getter on a `struct`, and a fresh copy recomputes the value on demand anyway.
 - **`let` constants with an initial value**, such as `let maxValue: Int = 100`. Their value is fixed and the memberwise initializer excludes them.
+- **Immutable tuple bindings**, such as `let (x, y) = (0, 0)` (allowed in a `class` or `actor`). They are constants, so there is nothing to vary. The mutable `var` form is rejected instead — see below.
 
 ### Declarations that are rejected
 
@@ -21,6 +22,7 @@ The macro emits an error, so the mistake surfaces at compile time instead of cor
 
 - **A copyable property without a type annotation**, such as `var count = 0`. The macro sees only syntax and cannot infer the type, so annotate it: `var count: Int = 0`. (Left unchecked, the property would silently reset to its default on every copy.)
 - **A `var` bound through a tuple pattern**, such as `var (x, y) = (0, 0)`. Declare each property on its own line so the macro can address them individually.
+- **A type with no copyable stored properties at all.** `@Copying` needs at least one property it can vary.
 - **Applying `@Copying` to anything other than a `struct`, `class`, or `actor`.**
 
 When several properties break the rules, every violation is reported in a single build.
