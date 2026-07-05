@@ -18,13 +18,16 @@ enum CopyingMethodRenderer {
         let fullTypeName = makeFullTypeName(name: typeName, genericParameterClause: genericParameterClause)
         let accessLevel = makeAccessLevelModifier(modifiers: modifiers)
 
-        let documentation = storedProperties
+        let documentation =
+            storedProperties
             .map { "///   - \($0.name): The new value for `\($0.name)`, or `nil` to keep the current value." }
             .joined(separator: "\n")
-        let parameters = storedProperties
+        let parameters =
+            storedProperties
             .map { "    \($0.name): (\($0.type))? = nil" }
             .joined(separator: ",\n")
-        let arguments = storedProperties
+        let arguments =
+            storedProperties
             .map { "        \($0.name): \($0.name) ?? self.\($0.name)" }
             .joined(separator: ",\n")
 

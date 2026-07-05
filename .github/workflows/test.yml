@@ -86,9 +86,19 @@ jobs:
       - name: Run tests
         run: swift test
 
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    container: swift:6.3
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Lint with swift-format
+        run: swift format lint --strict --recursive --parallel Sources Tests Package.swift
+
   test:
     name: test
-    needs: [linux, macos, dependency-floor]
+    needs: [linux, macos, dependency-floor, lint]
     if: always()
     runs-on: ubuntu-latest
     steps:

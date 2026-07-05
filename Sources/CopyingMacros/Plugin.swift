@@ -6,6 +6,6 @@ import SwiftSyntaxMacros
 @main
 struct CopyingPlugin: CompilerPlugin {
     let providingMacros: [Macro.Type] = [
-        CopyingMacro.self,
+        CopyingMacro.self
     ]
 }
