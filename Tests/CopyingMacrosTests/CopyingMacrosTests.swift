@@ -69,7 +69,7 @@ struct CopyingMacrosTests {
                     id: (Int)? = nil,
                     username: (String)? = nil
                 ) -> User {
-                    return User(
+                    User(
                         id: id ?? self.id,
                         username: username ?? self.username
                     )
@@ -148,6 +148,54 @@ struct CopyingMacrosTests {
                     Rectangle(
                         width: width ?? self.width,
                         height: height ?? self.height
+                    )
+                }
+            }
+            """,
+            macros: testMacros
+        )
+    }
+
+    @Test("Copying macro keeps observed stored properties and skips explicitly computed ones")
+    func copyingMacroHandlesAccessorBlocks() {
+        assertMacroExpansionForTesting(
+            """
+            @Copying
+            struct Model {
+                var name: String {
+                    didSet {
+                        print(name)
+                    }
+                }
+                var length: Int {
+                    get {
+                        name.count
+                    }
+                }
+            }
+            """,
+            expandedSource: """
+            struct Model {
+                var name: String {
+                    didSet {
+                        print(name)
+                    }
+                }
+                var length: Int {
+                    get {
+                        name.count
+                    }
+                }
+
+                /// Creates a copy of this instance with the specified properties modified.
+                /// - Parameters:
+                ///   - name: The new value for `name`, or `nil` to keep the current value.
+                /// - Returns: A new instance with the specified modifications.
+                func copying(
+                    name: (String)? = nil
+                ) -> Model {
+                    Model(
+                        name: name ?? self.name
                     )
                 }
             }
@@ -498,7 +546,7 @@ struct CopyingMacrosTests {
                 func copying(
                     item: (T)? = nil
                 ) -> Container<T> {
-                    return Container(
+                    Container(
                         item: item ?? self.item
                     )
                 }
@@ -532,7 +580,7 @@ struct CopyingMacrosTests {
                     id: (Int)? = nil,
                     value: (Int)? = nil
                 ) -> Counter {
-                    return Counter(
+                    Counter(
                         id: id ?? self.id,
                         value: value ?? self.value
                     )
@@ -563,7 +611,7 @@ struct CopyingMacrosTests {
                 func copying(
                     data: (T)? = nil
                 ) -> Storage<T> {
-                    return Storage(
+                    Storage(
                         data: data ?? self.data
                     )
                 }
@@ -722,7 +770,7 @@ struct CopyingMacrosTests {
                     id: (Int)? = nil,
                     username: (String)? = nil
                 ) -> User {
-                    return User(
+                    User(
                         id: id ?? self.id,
                         username: username ?? self.username
                     )
@@ -753,7 +801,7 @@ struct CopyingMacrosTests {
                 public func copying(
                     id: (Int)? = nil
                 ) -> User {
-                    return User(
+                    User(
                         id: id ?? self.id
                     )
                 }

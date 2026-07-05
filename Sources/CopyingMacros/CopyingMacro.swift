@@ -1,8 +1,14 @@
-import SwiftCompilerPlugin
 import SwiftSyntax
-import SwiftSyntaxBuilder
 import SwiftSyntaxMacros
 
+/// The implementation of the `@Copying` member macro.
+///
+/// It generates a `copying` method on the annotated struct, class, or actor that
+/// returns a new instance with a chosen subset of stored properties replaced. The
+/// heavy lifting is delegated to ``StoredProperty/extract(from:)`` (which selects
+/// the copyable properties) and ``CopyingMethodRenderer`` (which renders the
+/// method); this type only dispatches on the declaration kind and orchestrates the
+/// two steps.
 public struct CopyingMacro: MemberMacro {
     public static func expansion(
         of node: AttributeSyntax,
@@ -10,190 +16,32 @@ public struct CopyingMacro: MemberMacro {
         conformingTo protocols: [TypeSyntax],
         in context: some MacroExpansionContext
     ) throws -> [DeclSyntax] {
-        // Get the type name and generic parameters
         let typeName: String
-        let fullTypeName: String
-        let isClass: Bool
-
+        let genericParameterClause: GenericParameterClauseSyntax?
         if let structDecl = declaration.as(StructDeclSyntax.self) {
             typeName = structDecl.name.text
-            fullTypeName = makeFullTypeName(name: typeName, genericParameterClause: structDecl.genericParameterClause)
-            isClass = false
+            genericParameterClause = structDecl.genericParameterClause
         } else if let classDecl = declaration.as(ClassDeclSyntax.self) {
             typeName = classDecl.name.text
-            fullTypeName = makeFullTypeName(name: typeName, genericParameterClause: classDecl.genericParameterClause)
-            isClass = true
+            genericParameterClause = classDecl.genericParameterClause
         } else if let actorDecl = declaration.as(ActorDeclSyntax.self) {
             typeName = actorDecl.name.text
-            fullTypeName = makeFullTypeName(name: typeName, genericParameterClause: actorDecl.genericParameterClause)
-            isClass = true
+            genericParameterClause = actorDecl.genericParameterClause
         } else {
             throw CopyingMacroError.notStructOrClassOrActor
         }
 
-        let accessLevel = makeAccessLevelModifier(modifiers: declaration.modifiers)
-
-        // Extract stored properties
-        let storedProperties = try declaration.memberBlock.members.flatMap { member -> [StoredProperty] in
-            guard let varDecl = member.decl.as(VariableDeclSyntax.self) else {
-                return []
-            }
-
-            // Skip static properties
-            guard !varDecl.modifiers.contains(where: { $0.name.text == "static" }) else {
-                return []
-            }
-
-            // Skip lazy properties: reading one from `copying` would require a
-            // mutating getter on structs, and a fresh copy recomputes the value
-            // on demand anyway.
-            guard !varDecl.modifiers.contains(where: { $0.name.text == "lazy" }) else {
-                return []
-            }
-
-            // A single declaration can declare multiple properties on one line,
-            // e.g. `let x: Int, y: Int`. Iterate over every binding so none are dropped.
-            return try varDecl.bindings.compactMap { binding -> StoredProperty? in
-                // Check if it's a stored property (has no accessor block, or only has willSet/didSet)
-                if let accessorBlock = binding.accessorBlock {
-                    // Check if it's a computed property
-                    switch accessorBlock.accessors {
-                    case .getter:
-                        return nil
-                    case .accessors(let accessors):
-                        let hasGetOrSet = accessors.contains { accessor in
-                            accessor.accessorSpecifier.text == "get" || accessor.accessorSpecifier.text == "set"
-                        }
-                        if hasGetOrSet {
-                            return nil
-                        }
-                    }
-                }
-
-                guard let pattern = binding.pattern.as(IdentifierPatternSyntax.self) else {
-                    return nil
-                }
-
-                let propertyName = pattern.identifier.text
-
-                // A `let` with an initial value can never hold a different value
-                // and is excluded from the memberwise initializer, so it cannot
-                // participate in a copy.
-                if varDecl.bindingSpecifier.text == "let", binding.initializer != nil {
-                    return nil
-                }
-
-                // The type of the remaining properties must be spelled out: it
-                // becomes the parameter type of `copying`, and a macro only sees
-                // syntax, so it cannot infer a type from the initializer. Dropping
-                // the property instead would make every copy silently reset it to
-                // its default value.
-                guard let typeAnnotation = binding.typeAnnotation else {
-                    throw CopyingMacroError.missingTypeAnnotation(propertyName: propertyName)
-                }
-
-                let propertyType = typeAnnotation.type.trimmedDescription
-
-                return StoredProperty(name: propertyName, type: propertyType)
-            }
-        }
-
+        let storedProperties = try StoredProperty.extract(from: declaration)
         guard !storedProperties.isEmpty else {
             throw CopyingMacroError.noStoredProperties
         }
 
-        // Generate the copying method
-        let parametersList = storedProperties.map { property in
-            "    \(property.name): (\(property.type))? = nil"
-        }
-        let parameters = parametersList.joined(separator: ",\n")
-
-        let argumentsList = storedProperties.map { property in
-            "        \(property.name): \(property.name) ?? self.\(property.name)"
-        }
-        let arguments = argumentsList.joined(separator: ",\n")
-
-        let copyingMethod: DeclSyntax = """
-            /// Creates a copy of this instance with the specified properties modified.
-            /// - Parameters:
-            \(raw: storedProperties.map { "///   - \($0.name): The new value for `\($0.name)`, or `nil` to keep the current value." }.joined(separator: "\n"))
-            /// - Returns: A new instance with the specified modifications.
-            \(raw: accessLevel)func copying(
-            \(raw: parameters)
-            ) -> \(raw: fullTypeName) {
-                \(raw: isClass ? "return " : "")\(raw: typeName)(
-            \(raw: arguments)
-                )
-            }
-            """
-
+        let copyingMethod = CopyingMethodRenderer.render(
+            typeName: typeName,
+            genericParameterClause: genericParameterClause,
+            modifiers: declaration.modifiers,
+            storedProperties: storedProperties
+        )
         return [copyingMethod]
     }
-
-    /// Returns the access-level modifier (with a trailing space) to apply to the
-    /// generated method, derived from the type's declaration modifiers.
-    ///
-    /// Returns an empty string when the type has no explicit access-level modifier
-    /// (i.e. the default `internal`). Two levels are adjusted so that the method
-    /// is callable from everywhere the type itself is visible:
-    /// - `open` is mapped to `public` because the generated method is a factory
-    ///   that never needs to be overridden.
-    /// - `private` is mapped to `fileprivate` because a `private` member would be
-    ///   confined to the type declaration itself, while a `private` type remains
-    ///   usable in the rest of the file.
-    private static func makeAccessLevelModifier(modifiers: DeclModifierListSyntax) -> String {
-        let accessLevelKeywords: Set<String> = [
-            "open", "public", "package", "internal", "fileprivate", "private",
-        ]
-        guard let modifier = modifiers.first(where: { accessLevelKeywords.contains($0.name.text) }) else {
-            return ""
-        }
-        let keyword: String
-        switch modifier.name.text {
-        case "open":
-            keyword = "public"
-        case "private":
-            keyword = "fileprivate"
-        default:
-            keyword = modifier.name.text
-        }
-        return "\(keyword) "
-    }
-
-    private static func makeFullTypeName(name: String, genericParameterClause: GenericParameterClauseSyntax?) -> String {
-        guard let genericParameterClause = genericParameterClause else {
-            return name
-        }
-        let genericParameters = genericParameterClause.parameters.map { $0.name.text }.joined(separator: ", ")
-        return "\(name)<\(genericParameters)>"
-    }
-}
-
-struct StoredProperty {
-    let name: String
-    let type: String
-}
-
-enum CopyingMacroError: Error, CustomStringConvertible {
-    case notStructOrClassOrActor
-    case noStoredProperties
-    case missingTypeAnnotation(propertyName: String)
-
-    var description: String {
-        switch self {
-        case .notStructOrClassOrActor:
-            return "@Copying can only be applied to struct, class, or actor declarations"
-        case .noStoredProperties:
-            return "@Copying requires at least one stored property with explicit type annotation"
-        case .missingTypeAnnotation(let propertyName):
-            return "@Copying requires an explicit type annotation for '\(propertyName)'"
-        }
-    }
-}
-
-@main
-struct CopyingPlugin: CompilerPlugin {
-    let providingMacros: [Macro.Type] = [
-        CopyingMacro.self,
-    ]
 }
