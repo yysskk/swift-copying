@@ -1,3 +1,4 @@
+import SwiftDiagnostics
 import SwiftSyntax
 
 /// A single stored property that the generated `copying` method can change.
@@ -10,65 +11,95 @@ struct StoredProperty {
 
 extension StoredProperty {
     /// Extracts every stored property that should participate in a copy from the
-    /// members of the annotated declaration.
+    /// members of the annotated declaration, together with any diagnostics the
+    /// macro should report.
     ///
     /// Members that cannot be copied are skipped: type-level (`static`/`class`) and
-    /// `lazy` properties, computed and coroutine-accessor properties, non-identifier
-    /// bindings (e.g. tuple patterns), and `let` constants with an initial value
-    /// (which are fixed and excluded from the memberwise initializer).
+    /// `lazy` properties, computed and coroutine-accessor properties, and `let`
+    /// constants with an initial value (which are fixed and excluded from the
+    /// memberwise initializer).
     ///
-    /// - Throws: ``CopyingMacroError/missingTypeAnnotation(propertyName:)`` when a
-    ///   copyable property omits the explicit type annotation the macro needs.
-    static func extract(from declaration: some DeclGroupSyntax) throws -> [StoredProperty] {
-        try declaration.memberBlock.members.flatMap { member -> [StoredProperty] in
+    /// Two problems are reported as diagnostics rather than silently skipped,
+    /// because doing so would corrupt copies:
+    /// - A copyable property without an explicit type annotation. The macro only
+    ///   sees syntax and cannot infer the type; dropping the property would make
+    ///   every copy silently reset it to its default value.
+    /// - A `var` that binds several properties through a tuple pattern
+    ///   (e.g. `var (a, b) = (0, 0)`). Such properties are part of the memberwise
+    ///   initializer with defaults, so skipping them would make every copy silently
+    ///   reset them. A `let` tuple binding is skipped silently: it is immutable and
+    ///   Swift does not allow it as struct storage anyway.
+    ///
+    /// Diagnostics are collected across all bindings so a single compilation reports
+    /// every offending property at once.
+    static func extract(
+        from declaration: some DeclGroupSyntax
+    ) -> (properties: [StoredProperty], diagnostics: [Diagnostic]) {
+        var properties: [StoredProperty] = []
+        var diagnostics: [Diagnostic] = []
+        for member in declaration.memberBlock.members {
             guard let variable = member.decl.as(VariableDeclSyntax.self) else {
-                return []
+                continue
             }
-            return try storedProperties(in: variable)
+            collectStoredProperties(in: variable, into: &properties, diagnostics: &diagnostics)
         }
+        return (properties, diagnostics)
     }
 
-    /// Returns the copyable stored properties declared by a single `var`/`let`
-    /// declaration, which may bind several properties at once (e.g. `let x: Int, y: Int`).
-    private static func storedProperties(in variable: VariableDeclSyntax) throws -> [StoredProperty] {
+    /// Appends the copyable stored properties declared by a single `var`/`let`
+    /// declaration (which may bind several properties, e.g. `let x: Int, y: Int`),
+    /// recording a diagnostic for any binding that cannot be copied safely.
+    private static func collectStoredProperties(
+        in variable: VariableDeclSyntax,
+        into properties: inout [StoredProperty],
+        diagnostics: inout [Diagnostic]
+    ) {
         // Skip type-level (`static`/`class`) and `lazy` properties. A `static`/`class`
         // property is not part of an instance's state, and a `lazy` property would
         // require a mutating getter to read from `copying`; a fresh copy recomputes
         // it on demand anyway.
         guard !variable.modifiers.contains(where: \.isTypeLevelOrLazy) else {
-            return []
+            return
         }
 
         let isLet = variable.bindingSpecifier.tokenKind == .keyword(.let)
 
-        // A single declaration can bind multiple properties, so iterate over every
-        // binding to make sure none are dropped.
-        return try variable.bindings.compactMap { binding -> StoredProperty? in
+        for binding in variable.bindings {
             // Computed and coroutine-accessor properties are not stored.
             if let accessorBlock = binding.accessorBlock, !isStored(accessorBlock) {
-                return nil
+                continue
+            }
+
+            // A tuple pattern binds several properties at once and cannot be copied
+            // individually. Only `var` is flagged: a `var` tuple is part of the
+            // memberwise initializer, so skipping it would silently reset those
+            // properties on every copy.
+            if binding.pattern.is(TuplePatternSyntax.self) {
+                if !isLet {
+                    diagnostics.append(CopyingDiagnostic.tuplePatternBinding.diagnostic(at: binding.pattern))
+                }
+                continue
             }
 
             guard let pattern = binding.pattern.as(IdentifierPatternSyntax.self) else {
-                return nil
+                continue
             }
             let propertyName = pattern.identifier.text
 
             // A `let` with an initial value can never hold a different value and is
             // excluded from the memberwise initializer, so it cannot be copied.
             if isLet, binding.initializer != nil {
-                return nil
+                continue
             }
 
-            // The type must be spelled out: it becomes the `copying` parameter type,
-            // and a macro only sees syntax, so it cannot infer a type from the
-            // initializer. Dropping the property instead would make every copy
-            // silently reset it to its default value.
             guard let typeAnnotation = binding.typeAnnotation else {
-                throw CopyingMacroError.missingTypeAnnotation(propertyName: propertyName)
+                diagnostics.append(
+                    CopyingDiagnostic.missingTypeAnnotation(propertyName: propertyName).diagnostic(at: binding)
+                )
+                continue
             }
 
-            return StoredProperty(name: propertyName, type: typeAnnotation.type.trimmedDescription)
+            properties.append(StoredProperty(name: propertyName, type: typeAnnotation.type.trimmedDescription))
         }
     }
 
