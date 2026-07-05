@@ -1,10 +1,10 @@
-/// A macro that generates a `copying` method for struct or class types,
+/// A macro that generates a `copying` method for a `struct`, `class`, or `actor`,
 /// similar to Kotlin's `copy` function for data classes.
 ///
-/// The generated method allows creating a modified copy of an instance
-/// by specifying only the properties you want to change.
+/// The generated method takes one optional argument per stored property and
+/// returns a new instance with the specified properties replaced and every other
+/// property copied from the original.
 ///
-/// Example:
 /// ```swift
 /// @Copying
 /// struct Person {
@@ -16,5 +16,15 @@
 /// let olderJohn = john.copying(age: 31)
 /// // olderJohn.name == "John", olderJohn.age == 31
 /// ```
+///
+/// Each parameter defaults to `nil`, meaning "keep the current value". For an
+/// optional property the parameter is a double optional, so passing the `nil`
+/// literal keeps the value while `.some(nil)` resets it; see
+/// <doc:OptionalProperties>. For the properties the macro skips and the rules it
+/// enforces, see <doc:Limitations>.
+///
+/// - Note: A `class` or `actor` must provide an initializer shaped like a
+///   `struct`'s memberwise initializer — one labelled argument per copyable stored
+///   property — because the generated method calls it.
 @attached(member, names: named(copying))
 public macro Copying() = #externalMacro(module: "CopyingMacros", type: "CopyingMacro")
