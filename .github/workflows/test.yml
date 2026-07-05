@@ -85,3 +85,22 @@ jobs:
 
       - name: Run tests
         run: swift test
+
+  test:
+    name: test
+    needs: [linux, macos, dependency-floor]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      # Aggregates the matrix into a single stable status-check name ("test")
+      # so the branch ruleset has one context to require regardless of how the
+      # matrix legs are named. `if: always()` guarantees this job reports a
+      # conclusion even when a dependency fails, so a failure can never be
+      # masked by the gate being skipped.
+      - name: Verify required jobs succeeded
+        run: |
+          if [ "${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}" = "true" ]; then
+            echo "One or more required jobs failed or were cancelled."
+            exit 1
+          fi
+          echo "All required jobs succeeded."
