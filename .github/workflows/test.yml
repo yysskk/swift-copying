@@ -9,12 +9,29 @@ on:
       - main
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
 jobs:
-  test:
+  linux:
+    name: Linux (Swift ${{ matrix.swift }})
     runs-on: ubuntu-latest
-    container: swift:6.2
+    container: swift:${{ matrix.swift }}
+    strategy:
+      fail-fast: false
+      matrix:
+        swift: ["6.2", "6.3"]
     steps:
       - uses: actions/checkout@v7
+
+      - name: Cache SwiftPM build
+        uses: actions/cache@v4
+        with:
+          path: .build
+          key: linux-swift-${{ matrix.swift }}-spm-${{ hashFiles('Package.resolved') }}
+          restore-keys: |
+            linux-swift-${{ matrix.swift }}-spm-
 
       - name: Show Swift version
         run: swift --version
@@ -24,3 +41,66 @@ jobs:
 
       - name: Run tests
         run: swift test
+
+  macos:
+    name: macOS
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Cache SwiftPM build
+        uses: actions/cache@v4
+        with:
+          path: .build
+          key: macos-spm-${{ hashFiles('Package.resolved') }}
+          restore-keys: |
+            macos-spm-
+
+      - name: Show Swift version
+        run: swift --version
+
+      - name: Build
+        run: swift build
+
+      - name: Run tests
+        run: swift test
+
+  dependency-floor:
+    name: Linux (Swift 6.2, swift-syntax 600.0.0)
+    runs-on: ubuntu-latest
+    container: swift:6.2
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Pin swift-syntax to the minimum supported version
+        # Resolve the graph first so the targeted downgrade can find the
+        # dependency: on a fresh checkout `resolve <name> --version` fails
+        # until the package has been resolved once.
+        run: |
+          swift package resolve
+          swift package resolve swift-syntax --version 600.0.0
+
+      - name: Build
+        run: swift build
+
+      - name: Run tests
+        run: swift test
+
+  test:
+    name: test
+    needs: [linux, macos, dependency-floor]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      # Aggregates the matrix into a single stable status-check name ("test")
+      # so the branch ruleset has one context to require regardless of how the
+      # matrix legs are named. `if: always()` guarantees this job reports a
+      # conclusion even when a dependency fails, so a failure can never be
+      # masked by the gate being skipped.
+      - name: Verify required jobs succeeded
+        run: |
+          if [ "${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}" = "true" ]; then
+            echo "One or more required jobs failed or were cancelled."
+            exit 1
+          fi
+          echo "All required jobs succeeded."
