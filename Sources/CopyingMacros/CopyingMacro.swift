@@ -1,3 +1,4 @@
+import SwiftDiagnostics
 import SwiftSyntax
 import SwiftSyntaxMacros
 
@@ -6,9 +7,9 @@ import SwiftSyntaxMacros
 /// It generates a `copying` method on the annotated struct, class, or actor that
 /// returns a new instance with a chosen subset of stored properties replaced. The
 /// heavy lifting is delegated to ``StoredProperty/extract(from:)`` (which selects
-/// the copyable properties) and ``CopyingMethodRenderer`` (which renders the
-/// method); this type only dispatches on the declaration kind and orchestrates the
-/// two steps.
+/// the copyable properties and reports problematic ones) and
+/// ``CopyingMethodRenderer`` (which renders the method); this type only dispatches
+/// on the declaration kind and orchestrates the two steps.
 public struct CopyingMacro: MemberMacro {
     public static func expansion(
         of node: AttributeSyntax,
@@ -28,12 +29,17 @@ public struct CopyingMacro: MemberMacro {
             typeName = actorDecl.name.text
             genericParameterClause = actorDecl.genericParameterClause
         } else {
-            throw CopyingMacroError.notStructOrClassOrActor
+            throw CopyingDiagnostic.unsupportedDeclaration.error(at: node)
         }
 
-        let storedProperties = try StoredProperty.extract(from: declaration)
+        let (storedProperties, diagnostics) = StoredProperty.extract(from: declaration)
+
+        // Report every problematic binding in a single compilation.
+        guard diagnostics.isEmpty else {
+            throw DiagnosticsError(diagnostics: diagnostics)
+        }
         guard !storedProperties.isEmpty else {
-            throw CopyingMacroError.noStoredProperties
+            throw CopyingDiagnostic.noStoredProperties.error(at: node)
         }
 
         let copyingMethod = CopyingMethodRenderer.render(
