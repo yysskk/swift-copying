@@ -1,6 +1,7 @@
 # swift-copying
 
 [![CI](https://github.com/yysskk/swift-copying/actions/workflows/test.yml/badge.svg)](https://github.com/yysskk/swift-copying/actions/workflows/test.yml)
+[![Documentation](https://img.shields.io/badge/documentation-DocC-blue)](https://yysskk.github.io/swift-copying/documentation/copying)
 [![Swift Versions](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Fyysskk%2Fswift-copying%2Fbadge%3Ftype%3Dswift-versions)](https://swiftpackageindex.com/yysskk/swift-copying)
 [![Platforms](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Fyysskk%2Fswift-copying%2Fbadge%3Ftype%3Dplatforms)](https://swiftpackageindex.com/yysskk/swift-copying)
 [![License](https://img.shields.io/github/license/yysskk/swift-copying)](LICENSE)
@@ -176,7 +177,7 @@ The generated method inherits the type's access level: an `open` type produces a
 
 ## Documentation
 
-Full API documentation, including articles on the rules and optional-property semantics, is hosted on the [Swift Package Index](https://swiftpackageindex.com/yysskk/swift-copying/documentation/copying).
+Full API documentation, including articles on the rules, optional-property semantics, and a getting-started guide, is published to [GitHub Pages](https://yysskk.github.io/swift-copying/documentation/copying). It is also available on the [Swift Package Index](https://swiftpackageindex.com/yysskk/swift-copying/documentation/copying).
 
 ## Requirements
 
