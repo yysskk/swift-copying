@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- The rendered API documentation is now published to GitHub Pages at <https://yysskk.github.io/swift-copying/documentation/copying>, built from the DocC catalog on every push to `main`.
+
 ## [1.3.0] - 2026-07-04
 
 ### Added
