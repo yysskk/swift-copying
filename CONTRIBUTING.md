@@ -50,6 +50,25 @@ Every behavior change should be covered by both kinds of test:
 
 Run the full suite with `swift test` before opening a pull request.
 
+## Documentation
+
+The public API is documented with symbol comments, and the articles under
+`Sources/Copying/Copying.docc` cover the rules, optional-property semantics, and a
+getting-started guide.
+
+Documentation is built with the [Swift-DocC plugin](https://github.com/swiftlang/swift-docc-plugin).
+To keep it out of the dependency graph of packages that depend on swift-copying, the
+plugin is only added when the `SWIFT_COPYING_BUILD_DOCS` environment variable is set.
+
+Preview the documentation locally with a live-reloading server:
+
+```sh
+SWIFT_COPYING_BUILD_DOCS=1 swift package --disable-sandbox \
+    preview-documentation --target Copying
+```
+
+Then open the printed URL (for example `http://localhost:8080/documentation/copying`).
+
 ## Commit and pull request conventions
 
 - Branch off `main` with a prefix that matches the change: `feat/…`, `fix/…`, `refactor/…`, `chore/…`, `ci/…`, or `docs/…`.
