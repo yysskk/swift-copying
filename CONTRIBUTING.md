@@ -54,7 +54,8 @@ Run the full suite with `swift test` before opening a pull request.
 
 The public API is documented with symbol comments, and the articles under
 `Sources/Copying/Copying.docc` cover the rules, optional-property semantics, and a
-getting-started guide.
+getting-started guide. On every push to `main`, the `Documentation` workflow builds
+the catalog and publishes it to GitHub Pages.
 
 Documentation is built with the [Swift-DocC plugin](https://github.com/swiftlang/swift-docc-plugin).
 To keep it out of the dependency graph of packages that depend on swift-copying, the

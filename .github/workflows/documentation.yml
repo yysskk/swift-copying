@@ -1,0 +1,77 @@
+name: Documentation
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "Sources/**"
+      - "Package.swift"
+      - ".github/workflows/documentation.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "Sources/**"
+      - "Package.swift"
+      - ".github/workflows/documentation.yml"
+  workflow_dispatch:
+
+# Grant the token the least privilege the Pages deployment needs.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow one Pages deployment at a time. Do not cancel a run in progress so an
+# active deployment is always allowed to finish.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build
+    # Skip pull requests from forks, whose read-only token cannot upload the artifact.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    container: swift:6.3
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Build DocC documentation
+        env:
+          # Adds the Swift-DocC plugin to the package graph (see Package.swift).
+          SWIFT_COPYING_BUILD_DOCS: "1"
+        run: |
+          swift package --allow-writing-to-directory "$GITHUB_WORKSPACE/docs" \
+            generate-documentation \
+            --target Copying \
+            --disable-indexing \
+            --transform-for-static-hosting \
+            --hosting-base-path swift-copying \
+            --output-path "$GITHUB_WORKSPACE/docs"
+
+      - name: Redirect the site root to the module page
+        # generate-documentation renders the single-page-app shell at the site
+        # root; replace it with a redirect so "/" lands on the documentation.
+        run: |
+          echo '<!DOCTYPE html><meta charset="utf-8"><meta http-equiv="refresh" content="0; url=documentation/copying/"><link rel="canonical" href="documentation/copying/"><title>swift-copying</title><a href="documentation/copying/">Redirecting to the swift-copying documentation…</a>' > "$GITHUB_WORKSPACE/docs/index.html"
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs
+
+  deploy:
+    name: Deploy
+    # Publish only from the default branch or a manual run, never from pull requests.
+    if: github.event_name != 'pull_request'
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
