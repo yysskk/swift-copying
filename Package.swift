@@ -44,3 +44,13 @@ let package = Package(
         ),
     ]
 )
+
+// The Swift-DocC plugin is only needed to build the documentation, so it is added
+// behind an environment flag. This keeps it out of the dependency graph of packages
+// that depend on swift-copying, which never need to resolve it. Set
+// SWIFT_COPYING_BUILD_DOCS when generating documentation (see CONTRIBUTING.md).
+if Context.environment["SWIFT_COPYING_BUILD_DOCS"] != nil {
+    package.dependencies.append(
+        .package(url: "https://github.com/swiftlang/swift-docc-plugin", from: "1.0.0")
+    )
+}
