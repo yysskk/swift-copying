@@ -89,10 +89,14 @@ extension InitializerDeclSyntax {
     /// Whether `Type(…)` on its own can call this initializer.
     ///
     /// `copying` builds the copy with a plain call and returns the result as the type
-    /// itself, so an initializer it calls cannot be failable (the call would produce an
+    /// itself, so an initializer it calls cannot be `init?` (the call would produce an
     /// optional), throwing (it would need `try`), or `async` (it would need `await`).
+    ///
+    /// `init!` is fine, despite also being failable: its implicitly unwrapped result
+    /// converts to the type itself, so the call still type-checks. It traps instead of
+    /// returning `nil`, but that is the behavior its author asked for.
     fileprivate var isCallableAsPlainExpression: Bool {
-        guard optionalMark == nil else {
+        guard optionalMark?.tokenKind != .postfixQuestionMark else {
             return false
         }
         guard let effectSpecifiers = signature.effectSpecifiers else {

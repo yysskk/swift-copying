@@ -39,7 +39,7 @@ enum CopyingDiagnostic: DiagnosticMessage {
                 "@Copying requires '\(typeName)' to declare '\(signature)', which the generated 'copying' method calls"
         case .unusableInitializer(let signature):
             return
-                "@Copying calls '\(signature)' to build the copy, so it cannot be failable, throwing, or async"
+                "@Copying calls '\(signature)' to build the copy, so it cannot be failable ('init?'), throwing, or async"
         }
     }
 

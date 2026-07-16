@@ -808,12 +808,50 @@ struct CopyingMacrosTests {
                 DiagnosticSpec(
                     id: MessageID(domain: "CopyingMacros", id: "unusableInitializer"),
                     message:
-                        "@Copying calls 'init(id:)' to build the copy, so it cannot be failable, throwing, or async",
+                        "@Copying calls 'init(id:)' to build the copy, so it cannot be failable ('init?'), throwing, or async",
                     line: 5,
                     column: 5,
                     severity: .warning
                 )
             ],
+            macros: testMacros
+        )
+    }
+
+    @Test("Copying macro accepts an implicitly unwrapped failable initializer")
+    func copyingMacroAcceptsImplicitlyUnwrappedFailableInitializer() {
+        assertMacroExpansionForTesting(
+            """
+            @Copying
+            final class User {
+                let id: Int
+
+                init!(id: Int) {
+                    self.id = id
+                }
+            }
+            """,
+            expandedSource: """
+                final class User {
+                    let id: Int
+
+                    init!(id: Int) {
+                        self.id = id
+                    }
+
+                    /// Creates a copy of this instance with the specified properties modified.
+                    /// - Parameters:
+                    ///   - id: The new value for `id`, or `nil` to keep the current value.
+                    /// - Returns: A new instance with the specified modifications.
+                    func copying(
+                        id: (Int)? = nil
+                    ) -> User {
+                        User(
+                            id: id ?? self.id
+                        )
+                    }
+                }
+                """,
             macros: testMacros
         )
     }
@@ -856,7 +894,7 @@ struct CopyingMacrosTests {
                 DiagnosticSpec(
                     id: MessageID(domain: "CopyingMacros", id: "unusableInitializer"),
                     message:
-                        "@Copying calls 'init(id:)' to build the copy, so it cannot be failable, throwing, or async",
+                        "@Copying calls 'init(id:)' to build the copy, so it cannot be failable ('init?'), throwing, or async",
                     line: 5,
                     column: 5,
                     severity: .warning
@@ -904,7 +942,7 @@ struct CopyingMacrosTests {
                 DiagnosticSpec(
                     id: MessageID(domain: "CopyingMacros", id: "unusableInitializer"),
                     message:
-                        "@Copying calls 'init(id:)' to build the copy, so it cannot be failable, throwing, or async",
+                        "@Copying calls 'init(id:)' to build the copy, so it cannot be failable ('init?'), throwing, or async",
                     line: 5,
                     column: 5,
                     severity: .warning

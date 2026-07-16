@@ -302,6 +302,29 @@ struct CopyingTests {
         #expect(copied.celsius == 0)
     }
 
+    @Test("Generated code for an implicitly unwrapped failable initializer works correctly")
+    func implicitlyUnwrappedFailableInitializerCompileTest() {
+        // `init!` returns an implicitly unwrapped optional, which converts to the type
+        // itself, so the generated call type-checks and no diagnostic is warranted.
+        @Copying
+        class Port {
+            let number: Int
+
+            init!(number: Int) {
+                guard (1...65535).contains(number) else {
+                    return nil
+                }
+                self.number = number
+            }
+        }
+
+        // Annotated because an inferred binding would widen the result back to `Port?`.
+        let port: Port = Port(number: 80)
+        let copied = port.copying(number: 443)
+
+        #expect(copied.number == 443)
+    }
+
     @Test("Generated code for an initializer with extra omittable parameters works correctly")
     func initializerWithOmittableParametersCompileTest() {
         @Copying
