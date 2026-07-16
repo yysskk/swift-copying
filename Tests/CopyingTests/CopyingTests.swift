@@ -1,12 +1,70 @@
 import Copying
 import Testing
 
+#if canImport(Combine)
+    import Combine
+#endif
+
+#if canImport(Observation)
+    import Observation
+#endif
+
 // A file-scope private type: the generated method must be callable from
 // everywhere the type itself is visible, i.e. anywhere in this file.
 @Copying
 private struct PrivatePerson {
     let name: String
 }
+
+// A property wrapper with `init(wrappedValue:)` — the shape the generated `copying`
+// method supports. It normalizes its value so a copy visibly re-runs the wrapper.
+@propertyWrapper
+private struct Uppercased {
+    private var value: String
+    var wrappedValue: String {
+        get { value }
+        set { value = newValue.uppercased() }
+    }
+    init(wrappedValue: String) {
+        self.value = wrappedValue.uppercased()
+    }
+}
+
+// A property wrapper that takes attribute arguments and still offers
+// `init(wrappedValue:range:)`, so the memberwise initializer exposes the wrapped
+// type and reapplies the arguments on every copy.
+@propertyWrapper
+private struct Clamped {
+    private let range: ClosedRange<Int>
+    private var value: Int
+    var wrappedValue: Int {
+        get { value }
+        set { value = min(max(newValue, range.lowerBound), range.upperBound) }
+    }
+    init(wrappedValue: Int, range: ClosedRange<Int>) {
+        self.range = range
+        self.value = min(max(wrappedValue, range.lowerBound), range.upperBound)
+    }
+}
+
+#if canImport(Observation)
+    // `@Observable` is an extension macro and cannot be attached to a local type, so
+    // its composition with `@Copying` is exercised on a file-scope type. `@Observable`
+    // keeps the declared property type reachable through `self`, so the generated
+    // `copying` calls the class's own initializer just as it would without it.
+    @available(macOS 14, iOS 17, tvOS 17, watchOS 10, visionOS 1, *)
+    @Observable
+    @Copying
+    private final class ObservableSettings {
+        var theme: String
+        var fontSize: Int
+
+        init(theme: String, fontSize: Int) {
+            self.theme = theme
+            self.fontSize = fontSize
+        }
+    }
+#endif
 
 @Suite("Copying Tests")
 struct CopyingTests {
@@ -394,4 +452,77 @@ struct CopyingTests {
         #expect(copied.account === account)
         #expect(copied.number == "2222")
     }
+
+    @Test("Generated code copies a property wrapper that has init(wrappedValue:)")
+    func propertyWrapperWithWrappedValueInitCompileTest() {
+        @Copying
+        struct Profile {
+            @Uppercased var code: String
+            var name: String
+        }
+
+        let profile = Profile(code: "us", name: "Ann")
+        #expect(profile.code == "US")
+
+        // The wrapper runs again when the copy is built, so the new value is normalized.
+        let recoded = profile.copying(code: "gb")
+        #expect(recoded.code == "GB")
+        #expect(recoded.name == "Ann")
+    }
+
+    @Test("Generated code copies a property wrapper that takes attribute arguments")
+    func propertyWrapperWithArgumentsCompileTest() {
+        @Copying
+        struct Volume {
+            @Clamped(range: 0...11) var level: Int = 5
+            var label: String
+        }
+
+        // The wrapper's configured range clamps the incoming value.
+        let volume = Volume(level: 20, label: "intro")
+        #expect(volume.level == 11)
+
+        // The range is reapplied on the copy, so a new value is clamped the same way.
+        let quieter = volume.copying(level: -3)
+        #expect(quieter.level == 0)
+        #expect(quieter.label == "intro")
+
+        // A copy that leaves the wrapped property alone carries its value over.
+        let relabeled = volume.copying(label: "outro")
+        #expect(relabeled.level == 11)
+    }
+
+    #if canImport(Combine)
+        @Test("Generated code copies a class with @Published properties")
+        func publishedPropertyCompileTest() {
+            @Copying
+            final class ViewModel {
+                @Published var title: String
+                @Published var count: Int
+
+                init(title: String, count: Int) {
+                    self.title = title
+                    self.count = count
+                }
+            }
+
+            let model = ViewModel(title: "Draft", count: 1)
+            let copied = model.copying(count: 2)
+
+            #expect(copied.title == "Draft")
+            #expect(copied.count == 2)
+        }
+    #endif
+
+    #if canImport(Observation)
+        @available(macOS 14, iOS 17, tvOS 17, watchOS 10, visionOS 1, *)
+        @Test("Generated code composes with the @Observable macro")
+        func observableMacroCompositionCompileTest() {
+            let settings = ObservableSettings(theme: "dark", fontSize: 12)
+            let copied = settings.copying(fontSize: 14)
+
+            #expect(copied.theme == "dark")
+            #expect(copied.fontSize == 14)
+        }
+    #endif
 }
