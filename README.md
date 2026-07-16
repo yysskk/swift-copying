@@ -86,6 +86,14 @@ let user = User(id: 1, username: "johndoe", isActive: true)
 let inactiveUser = user.copying(isActive: false)
 ```
 
+Leave the initializer out and the macro tells you exactly which one to add, with a Fix-It that inserts it, instead of letting the mistake surface as an error inside the generated code:
+
+```
+⚠️ @Copying requires 'User' to declare 'init(id:username:isActive:)',
+   which the generated 'copying' method calls
+   Fix-It: Add 'init(id:username:isActive:)'
+```
+
 ### Actors
 
 Actors work the same way. Because `copying` is actor-isolated, call it with `await` from outside the actor:
@@ -172,6 +180,13 @@ The macro generates a parameter only for stored properties that can take part in
 - A `var` bound through a tuple pattern, e.g. `var (x, y) = (0, 0)`
 - A type with no copyable stored properties
 - Applying `@Copying` to anything other than a `struct`, `class`, or `actor`
+
+**Warned about, with the method still generated:**
+
+- A `class` or `actor` (or a `struct` that declares its own initializer) with no initializer matching the generated call. The warning names the signature and offers a Fix-It that writes it.
+- An initializer that takes the copied properties but is `init?`, throwing, or `async`, none of which `copying` can call as a plain expression. (`init!` is fine — its result unwraps implicitly.)
+
+These are warnings rather than errors because an initializer declared in an extension or inherited from a superclass satisfies the call but is invisible to a macro, which only sees the declaration it is attached to.
 
 The generated method inherits the type's access level: an `open` type produces a `public` method, and a `private` type produces a `fileprivate` one, so the method is callable exactly where the type is.
 

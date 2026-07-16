@@ -44,6 +44,21 @@ let user = User(id: 1, name: "Ada")
 let renamed = user.copying(name: "Grace")
 ```
 
+Forget that initializer and the macro tells you which one to add, with a Fix-It that writes it for you, rather than letting the mistake surface as an error inside the generated code:
+
+```swift
+@Copying
+final class User {
+    let id: Int
+    let name: String
+}
+// ⚠️ @Copying requires 'User' to declare 'init(id:name:)',
+//    which the generated 'copying' method calls
+//    Fix-It: Add 'init(id:name:)'
+```
+
+See <doc:Limitations> for exactly which declarations are checked and why this is a warning.
+
 An `actor`'s `copying` method is actor-isolated, so call it with `await` from outside the actor:
 
 ```swift

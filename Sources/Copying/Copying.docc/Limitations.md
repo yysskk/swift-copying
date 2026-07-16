@@ -30,3 +30,71 @@ When several properties break the rules, every violation is reported in a single
 ### The initializer requirement
 
 The generated method builds the copy by calling `TypeName(label: value, …)` using each copyable property's name as the argument label. A `struct` gets exactly this from its memberwise initializer for free. A `class` or `actor` must declare a matching initializer yourself — see <doc:GettingStarted>.
+
+The macro checks for that initializer and warns when it cannot find one, naming the signature it needs and offering a Fix-It that writes it:
+
+```swift
+@Copying
+final class User {
+    let id: Int
+    var username: String
+    var isActive: Bool
+}
+// ⚠️ @Copying requires 'User' to declare 'init(id:username:isActive:)',
+//    which the generated 'copying' method calls
+//    Fix-It: Add 'init(id:username:isActive:)'
+```
+
+The check applies to every `class` and `actor`, and to a `struct` that declares an initializer of its own, since doing so suppresses the memberwise initializer. A `struct` without one is never flagged.
+
+An initializer counts as long as the generated call reaches it, so it does not have to match the signature exactly. Extra parameters are fine when the call can leave them out:
+
+```swift
+@Copying
+final class User {
+    let id: Int
+    var tags: [String]
+
+    // Satisfies the call, which passes only `id:` and `tags:`.
+    init(audit: Bool = false, id: Int, notes: String..., tags: [String]) { … }
+}
+```
+
+Property types are not compared, only argument labels, so a typealias or a generic parameter never trips the check.
+
+### Initializers the copy cannot call
+
+`copying` calls the initializer as a plain expression and returns the result as the type itself, so the initializer cannot be failable (`init?`), throwing, or `async` — each would make the call produce something other than a ready-made instance. The macro warns on the initializer itself when it takes the copied properties but has one of those shapes:
+
+```swift
+@Copying
+final class User {
+    let id: Int
+
+    init?(id: Int) { … }
+    // ⚠️ @Copying calls 'init(id:)' to build the copy, so it cannot be
+    //    failable ('init?'), throwing, or async
+}
+```
+
+There is no Fix-It here, because that initializer has to change rather than be joined by another: Swift rejects a plain overload of a failable or throwing initializer as a redeclaration.
+
+An `init!` is accepted. It is failable too, but its implicitly unwrapped result converts to the type itself, so the call compiles — a copy traps instead of returning `nil`.
+
+### Why these are warnings
+
+Every other rule above is an error, but the two about initializers are warnings, because a macro only ever sees the declaration it is attached to. An initializer added in an extension, or inherited from a superclass, satisfies the generated call while being invisible to the check:
+
+```swift
+@Copying
+final class Widget {          // No initializer here …
+    var id: Int = 0
+    var title: String = ""
+}
+
+extension Widget {
+    convenience init(id: Int, title: String) { … }   // … but one here
+}
+```
+
+That code compiles and `copying` works, yet the macro cannot know it. As an error the diagnostic would reject working code with no way to opt out; as a warning it costs one false positive at worst. For the same reason `copying` is still generated when either warning fires.
