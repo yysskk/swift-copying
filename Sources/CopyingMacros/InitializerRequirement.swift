@@ -1,3 +1,5 @@
+import SwiftBasicFormat
+import SwiftDiagnostics
 import SwiftSyntax
 
 /// The initializer that the generated `copying` method calls to build the copy.
@@ -5,14 +7,20 @@ import SwiftSyntax
 /// `copying` constructs the new instance with `TypeName(label: value, …)`, passing
 /// every copyable stored property's name as an argument label. This type models that
 /// call so the macro can check the annotated declaration for an initializer able to
-/// accept it, and name the exact signature the declaration is missing.
+/// accept it, name the exact signature the declaration is missing, and write it.
 struct InitializerRequirement {
-    /// The argument labels the generated call passes, in order.
-    private let argumentLabels: [String]
+    /// The properties the copy has to pass on, in the order the generated call passes
+    /// them. Their names are the argument labels it uses.
+    private let storedProperties: [StoredProperty]
 
     /// Creates the requirement implied by the properties the copy has to pass on.
     init(storedProperties: [StoredProperty]) {
-        argumentLabels = storedProperties.map(\.name)
+        self.storedProperties = storedProperties
+    }
+
+    /// The argument labels the generated call passes, in order.
+    private var argumentLabels: [String] {
+        storedProperties.map(\.name)
     }
 
     /// The required initializer spelled the way Swift writes a compound name,
@@ -70,6 +78,53 @@ struct InitializerRequirement {
             }
         }
         return labels.isEmpty
+    }
+}
+
+extension InitializerRequirement {
+    /// A Fix-It that writes the missing initializer into `declaration`.
+    ///
+    /// The initializer is appended to the member block, takes one parameter per copied
+    /// property, and assigns each to its property — the memberwise initializer a
+    /// `struct` would have been given. It carries the same access level as the
+    /// generated method, so both are usable wherever the type is.
+    ///
+    /// This suits ``Shortfall/noInitializer`` only. Offering it for
+    /// ``Shortfall/unusableInitializer(_:)`` would suggest code that does not build:
+    /// Swift rejects a plain overload of a failable or throwing initializer as a
+    /// redeclaration, so that initializer has to be changed rather than joined.
+    func fixIt(insertingInto declaration: some DeclGroupSyntax) -> FixIt {
+        let memberBlock = declaration.memberBlock
+        let accessLevel = CopyingMethodRenderer.makeAccessLevelModifier(modifiers: declaration.modifiers)
+        let parameters = storedProperties.map { "\($0.name): \($0.type)" }.joined(separator: ", ")
+        let assignments =
+            storedProperties
+            .map { "    self.\($0.name) = \($0.name)" }
+            .joined(separator: "\n")
+
+        // Written against the left margin, then shifted onto the members' own
+        // indentation, so the initializer lines up with them wherever the type sits,
+        // including when it is nested. The first line is left alone: its indentation
+        // comes from the leading trivia below.
+        let initializer: DeclSyntax = """
+            \(raw: accessLevel)init(\(raw: parameters)) {
+            \(raw: assignments)
+            }
+            """
+        let indentation =
+            memberBlock.members.first?
+            .firstToken(viewMode: .sourceAccurate)?
+            .indentationOfLine ?? .spaces(4)
+        // A blank line keeps the initializer clear of whatever precedes it. The closing
+        // brace of the type already carries the newline that puts it on its own line.
+        let member = MemberBlockItemSyntax(decl: initializer.indented(by: indentation))
+            .with(\.leadingTrivia, .newlines(2) + indentation)
+        let newMemberBlock = memberBlock.with(\.members, memberBlock.members + [member])
+
+        return FixIt(
+            message: CopyingFixItMessage.insertInitializer(signature: signature),
+            changes: [.replace(oldNode: Syntax(memberBlock), newNode: Syntax(newMemberBlock))]
+        )
     }
 }
 

@@ -53,7 +53,7 @@ public struct CopyingMacro: MemberMacro {
             context.diagnose(
                 CopyingDiagnostic
                     .missingInitializer(typeName: typeName, signature: initializerRequirement.signature)
-                    .diagnostic(at: node)
+                    .diagnostic(at: node, fixIts: [initializerRequirement.fixIt(insertingInto: declaration)])
             )
         case .unusableInitializer(let initializer):
             // Anchored at the initializer itself: it is the thing to change, and the

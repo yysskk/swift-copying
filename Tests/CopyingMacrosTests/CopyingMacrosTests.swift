@@ -514,10 +514,24 @@ struct CopyingMacrosTests {
                         "@Copying requires 'User' to declare 'init(id:username:)', which the generated 'copying' method calls",
                     line: 1,
                     column: 1,
-                    severity: .warning
+                    severity: .warning,
+                    fixIts: [FixItSpec(message: "Add 'init(id:username:)'")]
                 )
             ],
-            macros: testMacros
+            macros: testMacros,
+            applyFixIts: ["Add 'init(id:username:)'"],
+            fixedSource: """
+                @Copying
+                class User {
+                    var id: Int = 0
+                    var username: String = ""
+
+                    init(id: Int, username: String) {
+                        self.id = id
+                        self.username = username
+                    }
+                }
+                """
         )
     }
 
@@ -569,10 +583,31 @@ struct CopyingMacrosTests {
                         "@Copying requires 'User' to declare 'init(id:username:)', which the generated 'copying' method calls",
                     line: 1,
                     column: 1,
-                    severity: .warning
+                    severity: .warning,
+                    fixIts: [FixItSpec(message: "Add 'init(id:username:)'")]
                 )
             ],
-            macros: testMacros
+            macros: testMacros,
+            applyFixIts: ["Add 'init(id:username:)'"],
+            // The existing initializer is left alone: only the author knows whether its
+            // labels are a mistake or deliberate, and both may coexist.
+            fixedSource: """
+                @Copying
+                final class User {
+                    let id: Int
+                    var username: String
+
+                    init(id: Int, name: String) {
+                        self.id = id
+                        self.username = name
+                    }
+
+                    init(id: Int, username: String) {
+                        self.id = id
+                        self.username = username
+                    }
+                }
+                """
         )
     }
 
@@ -609,10 +644,22 @@ struct CopyingMacrosTests {
                         "@Copying requires 'Counter' to declare 'init(value:)', which the generated 'copying' method calls",
                     line: 1,
                     column: 1,
-                    severity: .warning
+                    severity: .warning,
+                    fixIts: [FixItSpec(message: "Add 'init(value:)'")]
                 )
             ],
-            macros: testMacros
+            macros: testMacros,
+            applyFixIts: ["Add 'init(value:)'"],
+            fixedSource: """
+                @Copying
+                actor Counter {
+                    var value: Int = 0
+
+                    init(value: Int) {
+                        self.value = value
+                    }
+                }
+                """
         )
     }
 
@@ -664,10 +711,31 @@ struct CopyingMacrosTests {
                         "@Copying requires 'Point' to declare 'init(x:y:)', which the generated 'copying' method calls",
                     line: 1,
                     column: 1,
-                    severity: .warning
+                    severity: .warning,
+                    fixIts: [FixItSpec(message: "Add 'init(x:y:)'")]
                 )
             ],
-            macros: testMacros
+            macros: testMacros,
+            applyFixIts: ["Add 'init(x:y:)'"],
+            // Writing the memberwise initializer out by hand is what a struct needs once
+            // it has declared an initializer of its own.
+            fixedSource: """
+                @Copying
+                struct Point {
+                    var x: Int
+                    var y: Int
+
+                    init(origin: Void) {
+                        self.x = 0
+                        self.y = 0
+                    }
+
+                    init(x: Int, y: Int) {
+                        self.x = x
+                        self.y = y
+                    }
+                }
+                """
         )
     }
 
@@ -757,10 +825,26 @@ struct CopyingMacrosTests {
                         "@Copying requires 'Box' to declare 'init(value:)', which the generated 'copying' method calls",
                     line: 1,
                     column: 1,
-                    severity: .warning
+                    severity: .warning,
+                    fixIts: [FixItSpec(message: "Add 'init(value:)'")]
                 )
             ],
-            macros: testMacros
+            macros: testMacros,
+            applyFixIts: ["Add 'init(value:)'"],
+            fixedSource: """
+                @Copying
+                final class Box {
+                    let value: Int
+
+                    init(_ value: Int) {
+                        self.value = value
+                    }
+
+                    init(value: Int) {
+                        self.value = value
+                    }
+                }
+                """
         )
     }
 
@@ -1047,6 +1131,128 @@ struct CopyingMacrosTests {
                 }
                 """,
             macros: testMacros
+        )
+    }
+
+    @Test("Fix-It initializer carries the access level of the generated method")
+    func copyingMacroFixItCarriesAccessLevel() {
+        assertMacroExpansionForTesting(
+            """
+            @Copying
+            public actor Counter {
+                public var value: Int = 0
+
+                public func increment() {
+                    value += 1
+                }
+            }
+            """,
+            expandedSource: """
+                public actor Counter {
+                    public var value: Int = 0
+
+                    public func increment() {
+                        value += 1
+                    }
+
+                    /// Creates a copy of this instance with the specified properties modified.
+                    /// - Parameters:
+                    ///   - value: The new value for `value`, or `nil` to keep the current value.
+                    /// - Returns: A new instance with the specified modifications.
+                    public func copying(
+                        value: (Int)? = nil
+                    ) -> Counter {
+                        Counter(
+                            value: value ?? self.value
+                        )
+                    }
+                }
+                """,
+            diagnostics: [
+                DiagnosticSpec(
+                    id: MessageID(domain: "CopyingMacros", id: "missingInitializer"),
+                    message:
+                        "@Copying requires 'Counter' to declare 'init(value:)', which the generated 'copying' method calls",
+                    line: 1,
+                    column: 1,
+                    severity: .warning,
+                    fixIts: [FixItSpec(message: "Add 'init(value:)'")]
+                )
+            ],
+            macros: testMacros,
+            applyFixIts: ["Add 'init(value:)'"],
+            fixedSource: """
+                @Copying
+                public actor Counter {
+                    public var value: Int = 0
+
+                    public func increment() {
+                        value += 1
+                    }
+
+                    public init(value: Int) {
+                        self.value = value
+                    }
+                }
+                """
+        )
+    }
+
+    @Test("Fix-It initializer follows the indentation of a nested type")
+    func copyingMacroFixItFollowsNestedIndentation() {
+        assertMacroExpansionForTesting(
+            """
+            enum Namespace {
+                @Copying
+                final class Box {
+                    let value: Int
+                }
+            }
+            """,
+            expandedSource: """
+                enum Namespace {
+                    final class Box {
+                        let value: Int
+
+                        /// Creates a copy of this instance with the specified properties modified.
+                        /// - Parameters:
+                        ///   - value: The new value for `value`, or `nil` to keep the current value.
+                        /// - Returns: A new instance with the specified modifications.
+                        func copying(
+                            value: (Int)? = nil
+                        ) -> Box {
+                            Box(
+                                value: value ?? self.value
+                            )
+                        }
+                    }
+                }
+                """,
+            diagnostics: [
+                DiagnosticSpec(
+                    id: MessageID(domain: "CopyingMacros", id: "missingInitializer"),
+                    message:
+                        "@Copying requires 'Box' to declare 'init(value:)', which the generated 'copying' method calls",
+                    line: 2,
+                    column: 5,
+                    severity: .warning,
+                    fixIts: [FixItSpec(message: "Add 'init(value:)'")]
+                )
+            ],
+            macros: testMacros,
+            applyFixIts: ["Add 'init(value:)'"],
+            fixedSource: """
+                enum Namespace {
+                    @Copying
+                    final class Box {
+                        let value: Int
+
+                        init(value: Int) {
+                            self.value = value
+                        }
+                    }
+                }
+                """
         )
     }
 
