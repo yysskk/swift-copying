@@ -42,6 +42,32 @@ public struct CopyingMacro: MemberMacro {
             throw CopyingDiagnostic.noStoredProperties.error(at: node)
         }
 
+        // Report the initializer the copy needs against the declaration itself, so the
+        // mistake surfaces there instead of as an error inside the expansion, pointing
+        // at generated code the author never wrote. These only warn, and the method is
+        // still generated: the requirement may be met by an initializer a macro cannot
+        // see.
+        let initializerRequirement = InitializerRequirement(storedProperties: storedProperties)
+        switch initializerRequirement.shortfall(of: declaration) {
+        case .noInitializer:
+            context.diagnose(
+                CopyingDiagnostic
+                    .missingInitializer(typeName: typeName, signature: initializerRequirement.signature)
+                    .diagnostic(at: node)
+            )
+        case .unusableInitializer(let initializer):
+            // Anchored at the initializer itself: it is the thing to change, and the
+            // author cannot simply add the required one alongside it, since Swift
+            // rejects a plain overload of a failable or throwing initializer.
+            context.diagnose(
+                CopyingDiagnostic
+                    .unusableInitializer(signature: initializerRequirement.signature)
+                    .diagnostic(at: initializer.initKeyword)
+            )
+        case nil:
+            break
+        }
+
         let copyingMethod = CopyingMethodRenderer.render(
             typeName: typeName,
             genericParameterClause: genericParameterClause,

@@ -10,6 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - The rendered API documentation is now published to GitHub Pages at <https://yysskk.github.io/swift-copying/documentation/copying>, built from the DocC catalog on every push to `main`.
+- A warning that names the initializer `copying` needs, such as `init(id:username:isActive:)`, when the annotated declaration does not appear to declare one. Forgetting it previously surfaced only as an argument-label error inside the generated code, which did not say what was wrong. A `class` or `actor` is always checked, and so is a `struct` that suppresses its memberwise initializer by declaring an initializer of its own. It is a warning rather than an error because an initializer added in an extension or inherited from a superclass also satisfies the call but is invisible to a macro.
+- A warning on an initializer that takes the copied properties but is `init?`, throwing, or `async`, since `copying` calls it as a plain expression. This too previously surfaced only inside the generated code, as an unwrapping, `try`, or `await` error. An `init!` is accepted: its result unwraps implicitly, so the call compiles.
 
 ## [1.3.0] - 2026-07-04
 
