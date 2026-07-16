@@ -97,28 +97,31 @@ extension InitializerRequirement {
         let memberBlock = declaration.memberBlock
         let accessLevel = CopyingMethodRenderer.makeAccessLevelModifier(modifiers: declaration.modifiers)
         let parameters = storedProperties.map { "\($0.name): \($0.type)" }.joined(separator: ", ")
-        let assignments =
-            storedProperties
-            .map { "    self.\($0.name) = \($0.name)" }
-            .joined(separator: "\n")
 
-        // Written against the left margin, then shifted onto the members' own
-        // indentation, so the initializer lines up with them wherever the type sits,
-        // including when it is nested. The first line is left alone: its indentation
-        // comes from the leading trivia below.
-        let initializer: DeclSyntax = """
-            \(raw: accessLevel)init(\(raw: parameters)) {
-            \(raw: assignments)
-            }
-            """
-        let indentation =
+        // Line the initializer up with the members already there, one indentation step
+        // deeper for its body, so it fits in wherever the type sits — a nested type
+        // included. The step is what the members add over the type's own line, which
+        // is the file's actual unit whether it spells indentation with spaces or tabs.
+        let memberIndentation =
             memberBlock.members.first?
             .firstToken(viewMode: .sourceAccurate)?
-            .indentationOfLine ?? .spaces(4)
-        // A blank line keeps the initializer clear of whatever precedes it. The closing
-        // brace of the type already carries the newline that puts it on its own line.
-        let member = MemberBlockItemSyntax(decl: initializer.indented(by: indentation))
-            .with(\.leadingTrivia, .newlines(2) + indentation)
+            .indentationOfLine.description ?? "    "
+        let enclosingIndentation = memberBlock.leftBrace.indentationOfLine.description
+        let step =
+            memberIndentation.hasPrefix(enclosingIndentation)
+            ? String(memberIndentation.dropFirst(enclosingIndentation.count)) : memberIndentation
+        let bodyIndentation = memberIndentation + step
+
+        let lines =
+            ["\(accessLevel)init(\(parameters)) {"]
+            + storedProperties.map { "\(bodyIndentation)self.\($0.name) = \($0.name)" }
+            + ["\(memberIndentation)}"]
+        // The first line carries no indentation of its own; the member's leading trivia
+        // below puts it on the members' column. A blank line sets it off from whatever
+        // precedes it, and the type's closing brace already sits on its own line.
+        let initializer = DeclSyntax("\(raw: lines.joined(separator: "\n"))")
+        let member = MemberBlockItemSyntax(decl: initializer)
+            .with(\.leadingTrivia, .newlines(2) + Trivia(stringLiteral: memberIndentation))
         let newMemberBlock = memberBlock.with(\.members, memberBlock.members + [member])
 
         return FixIt(
