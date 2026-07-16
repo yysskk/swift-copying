@@ -166,6 +166,8 @@ func copying(
 
 The macro generates a parameter only for stored properties that can take part in a copy.
 
+`weak` and `unowned` references are copied like any other stored property and keep their specifier. So are property wrappers that provide `init(wrappedValue:)` — such as `@Published` and `@AppStorage` — because Swift's memberwise initializer then takes the wrapped type, which is what the generated call passes. `@Copying` composes with the `@Observable` macro too. A wrapper with *no* `init(wrappedValue:)` is the one unsupported shape; see [Limitations](https://yysskk.github.io/swift-copying/documentation/copying/limitations) for why it cannot be diagnosed and how to work around it.
+
 **Skipped silently:**
 
 - `static` (and `class`) type properties
