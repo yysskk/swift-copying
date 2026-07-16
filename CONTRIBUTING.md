@@ -50,6 +50,28 @@ Every behavior change should be covered by both kinds of test:
 
 Run the full suite with `swift test` before opening a pull request.
 
+## swift-syntax compatibility
+
+The macro implementation is built on swift-syntax, and `Package.swift` depends on a
+deliberately wide version range so swift-copying resolves alongside other macro
+packages regardless of which swift-syntax major they pin.
+
+To check the package against a swift-syntax version the range does not cover yet —
+typically a prerelease of the next major — set `SWIFT_COPYING_SWIFT_SYNTAX_VERSION`
+to an exact version. It overrides the range with that single version:
+
+```sh
+SWIFT_COPYING_SWIFT_SYNTAX_VERSION=605.0.0-prerelease-2026-06-26 swift test
+```
+
+CI runs this on every pull request against the next major's prerelease, so breaking
+changes surface before the range is widened. That job reports early warning only and
+is not part of the required `test` check: swift-copying does not claim support for an
+unreleased swift-syntax, so a failure there must never block an unrelated change.
+
+Leave the variable unset for normal development; it is only a testing aid, and the
+range in `Package.swift` is what consumers resolve against.
+
 ## Documentation
 
 The public API is documented with symbol comments, and the articles under
