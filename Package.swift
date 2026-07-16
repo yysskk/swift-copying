@@ -3,6 +3,30 @@
 import CompilerPluginSupport
 import PackageDescription
 
+let swiftSyntaxURL = "https://github.com/swiftlang/swift-syntax.git"
+
+// A wide range so this package resolves alongside other macro packages
+// regardless of which stable swift-syntax major they pin.
+let swiftSyntaxVersions: Range<Version> = "600.0.0"..<"605.0.0"
+
+// Setting SWIFT_COPYING_SWIFT_SYNTAX_VERSION pins swift-syntax to one exact version
+// instead of `swiftSyntaxVersions`, including a version the range does not cover such
+// as a prerelease of the next major. CI uses this to catch breaking changes in an
+// upcoming release before the range is widened to include it, so widening stays a
+// one-line change. It is never set when the package is consumed as a dependency
+// (see CONTRIBUTING.md).
+let swiftSyntaxDependency: Package.Dependency = {
+    guard let requested = Context.environment["SWIFT_COPYING_SWIFT_SYNTAX_VERSION"] else {
+        return .package(url: swiftSyntaxURL, swiftSyntaxVersions)
+    }
+    // Fail loudly rather than falling back to the range, which would let a typo
+    // silently report a pass for a version that was never built.
+    guard let version = Version(requested) else {
+        fatalError("SWIFT_COPYING_SWIFT_SYNTAX_VERSION is not a valid version: '\(requested)'")
+    }
+    return .package(url: swiftSyntaxURL, exact: version)
+}()
+
 let package = Package(
     name: "swift-copying",
     platforms: [
@@ -14,11 +38,7 @@ let package = Package(
             targets: ["Copying"]
         )
     ],
-    dependencies: [
-        // A wide range so this package resolves alongside other macro packages
-        // regardless of which stable swift-syntax major they pin.
-        .package(url: "https://github.com/swiftlang/swift-syntax.git", "600.0.0"..<"605.0.0")
-    ],
+    dependencies: [swiftSyntaxDependency],
     targets: [
         .macro(
             name: "CopyingMacros",
