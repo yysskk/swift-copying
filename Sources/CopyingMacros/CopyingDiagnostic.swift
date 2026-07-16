@@ -17,6 +17,9 @@ enum CopyingDiagnostic: DiagnosticMessage {
     /// A `var` binds several properties through a tuple pattern, which the macro
     /// cannot copy individually.
     case tuplePatternBinding
+    /// The declaration does not declare an initializer that the generated `copying`
+    /// method can call.
+    case missingInitializer(typeName: String, signature: String)
 
     var message: String {
         switch self {
@@ -28,10 +31,24 @@ enum CopyingDiagnostic: DiagnosticMessage {
             return "@Copying requires an explicit type annotation for '\(propertyName)'"
         case .tuplePatternBinding:
             return "@Copying does not support tuple pattern bindings; declare each property separately"
+        case .missingInitializer(let typeName, let signature):
+            return
+                "@Copying requires '\(typeName)' to declare '\(signature)', which the generated 'copying' method calls"
         }
     }
 
-    var severity: DiagnosticSeverity { .error }
+    /// Every problem the macro can detect for certain is an error. The missing
+    /// initializer is the exception: an initializer declared in an extension or
+    /// inherited from a superclass satisfies the generated call but is invisible to a
+    /// macro, so flagging it as an error would reject code that compiles.
+    var severity: DiagnosticSeverity {
+        switch self {
+        case .unsupportedDeclaration, .noStoredProperties, .missingTypeAnnotation, .tuplePatternBinding:
+            return .error
+        case .missingInitializer:
+            return .warning
+        }
+    }
 
     var diagnosticID: MessageID {
         MessageID(domain: "CopyingMacros", id: identifier)
@@ -48,6 +65,8 @@ enum CopyingDiagnostic: DiagnosticMessage {
             return "missingTypeAnnotation"
         case .tuplePatternBinding:
             return "tuplePatternBinding"
+        case .missingInitializer:
+            return "missingInitializer"
         }
     }
 }

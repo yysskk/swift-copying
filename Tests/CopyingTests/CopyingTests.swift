@@ -275,4 +275,50 @@ struct CopyingTests {
         #expect(wrapper.value.description == "42")
         #expect(copied.value.description == "hello")
     }
+
+    // The initializer requirement is satisfied by more shapes than an exact
+    // memberwise match. These compile warning-free, proving the check does not flag
+    // an initializer the generated call can actually reach.
+
+    @Test("Generated code for a struct with its own memberwise-shaped initializer works correctly")
+    func structWithHandWrittenInitializerCompileTest() {
+        @Copying
+        struct Temperature {
+            let celsius: Double
+
+            init(celsius: Double) {
+                self.celsius = celsius
+            }
+
+            init(fahrenheit: Double) {
+                self.celsius = (fahrenheit - 32) / 1.8
+            }
+        }
+
+        let boiling = Temperature(fahrenheit: 212)
+        let copied = boiling.copying(celsius: 0)
+
+        #expect(boiling.celsius == 100)
+        #expect(copied.celsius == 0)
+    }
+
+    @Test("Generated code for an initializer with extra omittable parameters works correctly")
+    func initializerWithOmittableParametersCompileTest() {
+        @Copying
+        class Document {
+            let title: String
+            let tags: [String]
+
+            init(draft: Bool = true, title: String, revisions: Int..., tags: [String]) {
+                self.title = title
+                self.tags = tags
+            }
+        }
+
+        let document = Document(title: "Notes", tags: ["a"])
+        let copied = document.copying(title: "Final")
+
+        #expect(copied.title == "Final")
+        #expect(copied.tags == ["a"])
+    }
 }

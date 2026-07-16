@@ -42,6 +42,19 @@ public struct CopyingMacro: MemberMacro {
             throw CopyingDiagnostic.noStoredProperties.error(at: node)
         }
 
+        // Point at the declaration when the initializer the copy needs is nowhere in
+        // sight, so the mistake surfaces here instead of as an argument-label error
+        // inside the expansion. This only warns, and the method is still generated:
+        // the requirement may well be met by an initializer a macro cannot see.
+        let initializerRequirement = InitializerRequirement(storedProperties: storedProperties)
+        if !initializerRequirement.isSatisfied(by: declaration) {
+            context.diagnose(
+                CopyingDiagnostic
+                    .missingInitializer(typeName: typeName, signature: initializerRequirement.signature)
+                    .diagnostic(at: node)
+            )
+        }
+
         let copyingMethod = CopyingMethodRenderer.render(
             typeName: typeName,
             genericParameterClause: genericParameterClause,

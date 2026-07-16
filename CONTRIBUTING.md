@@ -21,6 +21,7 @@ swift test    # run the test suite
   - `Plugin.swift` — the compiler plugin entry point.
   - `CopyingMacro.swift` — the `MemberMacro` conformance: declaration dispatch and orchestration.
   - `StoredProperty.swift` — selecting the copyable stored properties and reporting problematic ones.
+  - `InitializerRequirement.swift` — the initializer the generated method calls, and whether the declaration offers one.
   - `CopyingMethodRenderer.swift` — rendering the generated `copying` method.
   - `CopyingDiagnostic.swift` — the diagnostics the macro emits.
 - `Sources/CopyingClient` — a small executable that exercises the macro end to end.
