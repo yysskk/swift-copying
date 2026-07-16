@@ -456,8 +456,9 @@ struct CopyingMacrosTests {
     func copyingMacroCopiesPropertyWrapper() {
         // The macro reads only the property's annotated (wrapped) type and ignores the
         // wrapper attribute, so a wrapped property is copied like any other. This is
-        // correct as long as the wrapper offers `init(wrappedValue:)`, which the
-        // synthesized memberwise initializer relies on; see <doc:Limitations>.
+        // correct as long as the wrapper offers `init(wrappedValue:)`: the synthesized
+        // memberwise initializer then takes the wrapped type, which is exactly what the
+        // generated call passes.
         assertMacroExpansionForTesting(
             """
             @Copying
