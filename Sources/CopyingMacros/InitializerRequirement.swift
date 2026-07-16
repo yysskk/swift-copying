@@ -1,3 +1,5 @@
+import SwiftBasicFormat
+import SwiftDiagnostics
 import SwiftSyntax
 
 /// The initializer that the generated `copying` method calls to build the copy.
@@ -5,14 +7,20 @@ import SwiftSyntax
 /// `copying` constructs the new instance with `TypeName(label: value, …)`, passing
 /// every copyable stored property's name as an argument label. This type models that
 /// call so the macro can check the annotated declaration for an initializer able to
-/// accept it, and name the exact signature the declaration is missing.
+/// accept it, name the exact signature the declaration is missing, and write it.
 struct InitializerRequirement {
-    /// The argument labels the generated call passes, in order.
-    private let argumentLabels: [String]
+    /// The properties the copy has to pass on, in the order the generated call passes
+    /// them. Their names are the argument labels it uses.
+    private let storedProperties: [StoredProperty]
 
     /// Creates the requirement implied by the properties the copy has to pass on.
     init(storedProperties: [StoredProperty]) {
-        argumentLabels = storedProperties.map(\.name)
+        self.storedProperties = storedProperties
+    }
+
+    /// The argument labels the generated call passes, in order.
+    private var argumentLabels: [String] {
+        storedProperties.map(\.name)
     }
 
     /// The required initializer spelled the way Swift writes a compound name,
@@ -70,6 +78,56 @@ struct InitializerRequirement {
             }
         }
         return labels.isEmpty
+    }
+}
+
+extension InitializerRequirement {
+    /// A Fix-It that writes the missing initializer into `declaration`.
+    ///
+    /// The initializer is appended to the member block, takes one parameter per copied
+    /// property, and assigns each to its property — the memberwise initializer a
+    /// `struct` would have been given. It carries the same access level as the
+    /// generated method, so both are usable wherever the type is.
+    ///
+    /// This suits ``Shortfall/noInitializer`` only. Offering it for
+    /// ``Shortfall/unusableInitializer(_:)`` would suggest code that does not build:
+    /// Swift rejects a plain overload of a failable or throwing initializer as a
+    /// redeclaration, so that initializer has to be changed rather than joined.
+    func fixIt(insertingInto declaration: some DeclGroupSyntax) -> FixIt {
+        let memberBlock = declaration.memberBlock
+        let accessLevel = CopyingMethodRenderer.makeAccessLevelModifier(modifiers: declaration.modifiers)
+        let parameters = storedProperties.map { "\($0.name): \($0.type)" }.joined(separator: ", ")
+
+        // Line the initializer up with the members already there, one indentation step
+        // deeper for its body, so it fits in wherever the type sits — a nested type
+        // included. The step is what the members add over the type's own line, which
+        // is the file's actual unit whether it spells indentation with spaces or tabs.
+        let memberIndentation =
+            memberBlock.members.first?
+            .firstToken(viewMode: .sourceAccurate)?
+            .indentationOfLine.description ?? "    "
+        let enclosingIndentation = memberBlock.leftBrace.indentationOfLine.description
+        let step =
+            memberIndentation.hasPrefix(enclosingIndentation)
+            ? String(memberIndentation.dropFirst(enclosingIndentation.count)) : memberIndentation
+        let bodyIndentation = memberIndentation + step
+
+        let lines =
+            ["\(accessLevel)init(\(parameters)) {"]
+            + storedProperties.map { "\(bodyIndentation)self.\($0.name) = \($0.name)" }
+            + ["\(memberIndentation)}"]
+        // The first line carries no indentation of its own; the member's leading trivia
+        // below puts it on the members' column. A blank line sets it off from whatever
+        // precedes it, and the type's closing brace already sits on its own line.
+        let initializer = DeclSyntax("\(raw: lines.joined(separator: "\n"))")
+        let member = MemberBlockItemSyntax(decl: initializer)
+            .with(\.leadingTrivia, .newlines(2) + Trivia(stringLiteral: memberIndentation))
+        let newMemberBlock = memberBlock.with(\.members, memberBlock.members + [member])
+
+        return FixIt(
+            message: CopyingFixItMessage.insertInitializer(signature: signature),
+            changes: [.replace(oldNode: Syntax(memberBlock), newNode: Syntax(newMemberBlock))]
+        )
     }
 }
 

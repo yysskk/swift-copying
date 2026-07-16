@@ -24,6 +24,7 @@ swift test    # run the test suite
   - `InitializerRequirement.swift` — the initializer the generated method calls, and whether the declaration offers one.
   - `CopyingMethodRenderer.swift` — rendering the generated `copying` method.
   - `CopyingDiagnostic.swift` — the diagnostics the macro emits.
+  - `CopyingFixItMessage.swift` — the Fix-Its offered alongside them.
 - `Sources/CopyingClient` — a small executable that exercises the macro end to end.
 - `Tests/CopyingMacrosTests` — macro **expansion** tests (assert the generated source and diagnostics).
 - `Tests/CopyingTests` — **runtime** tests (assert that the generated code compiles and behaves correctly).

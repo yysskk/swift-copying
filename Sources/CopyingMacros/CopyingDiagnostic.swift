@@ -80,9 +80,10 @@ enum CopyingDiagnostic: DiagnosticMessage {
 }
 
 extension CopyingDiagnostic {
-    /// Builds a ``SwiftDiagnostics/Diagnostic`` for this message anchored to `node`.
-    func diagnostic(at node: some SyntaxProtocol) -> Diagnostic {
-        Diagnostic(node: node, message: self)
+    /// Builds a ``SwiftDiagnostics/Diagnostic`` for this message anchored to `node`,
+    /// optionally offering `fixIts` that resolve it.
+    func diagnostic(at node: some SyntaxProtocol, fixIts: [FixIt] = []) -> Diagnostic {
+        Diagnostic(node: node, message: self, fixIts: fixIts)
     }
 
     /// Wraps this message in a ``SwiftDiagnostics/DiagnosticsError`` anchored to
