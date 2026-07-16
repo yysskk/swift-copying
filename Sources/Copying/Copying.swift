@@ -25,6 +25,8 @@
 ///
 /// - Note: A `class` or `actor` must provide an initializer shaped like a
 ///   `struct`'s memberwise initializer — one labelled argument per copyable stored
-///   property — because the generated method calls it.
+///   property — because the generated method calls it. If it is missing, the macro
+///   warns with the exact signature and a Fix-It that inserts it; see
+///   <doc:Limitations>.
 @attached(member, names: named(copying))
 public macro Copying() = #externalMacro(module: "CopyingMacros", type: "CopyingMacro")
