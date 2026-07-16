@@ -98,3 +98,98 @@ extension Widget {
 ```
 
 That code compiles and `copying` works, yet the macro cannot know it. As an error the diagnostic would reject working code with no way to opt out; as a warning it costs one false positive at worst. For the same reason `copying` is still generated when either warning fires.
+
+### Property wrappers
+
+A wrapped property is copied like any other: the macro reads the property's declared — that is, wrapped — type and ignores the attribute.
+
+```swift
+@Copying
+final class ViewModel {
+    @Published var title: String
+    @Published var count: Int
+
+    init(title: String, count: Int) { … }
+}
+
+let draft = ViewModel(title: "Draft", count: 1)
+let copy = draft.copying(count: 2)   // title carried over, count replaced
+```
+
+This is correct whenever the wrapper provides `init(wrappedValue:)`, because Swift then gives the memberwise initializer a parameter of the *wrapped* type — exactly what the generated call passes. That covers `@Published`, `@AppStorage`, and most custom wrappers.
+
+A wrapper configured by attribute arguments works too, as long as it still offers an `init(wrappedValue:…)`. Each copy is rebuilt through the initializer, so the wrapper runs again and its arguments are reapplied:
+
+```swift
+@Copying
+struct Volume {
+    @Clamped(range: 0...11) var level: Int = 5
+}
+
+Volume(level: 20).level                     // 11 — clamped on the way in
+Volume(level: 20).copying(level: -3).level  // 0  — and clamped again on the copy
+```
+
+`@Copying` also composes with the `@Observable` macro, which leaves the declared property type reachable through `self`:
+
+```swift
+@Observable
+@Copying
+final class Settings {
+    var theme: String
+    var fontSize: Int
+
+    init(theme: String, fontSize: Int) { … }
+}
+```
+
+### Wrappers without `init(wrappedValue:)`
+
+A wrapper that can only be built from its own arguments is the one shape that does not work:
+
+```swift
+@propertyWrapper
+struct Boxed<Value> {
+    var wrappedValue: Value
+    init(value: Value) { self.wrappedValue = value }   // and no init(wrappedValue:)
+}
+
+@Copying
+struct Model {
+    @Boxed(value: 1) var count: Int
+}
+// ❌ error: cannot convert value of type 'Int' to expected argument type 'Boxed<Int>'
+```
+
+Without an `init(wrappedValue:)`, the memberwise initializer takes the *backing wrapper* (`Boxed<Int>`) rather than the wrapped value, while `copying` passes the wrapped value (`Int`), so the generated call does not type-check.
+
+Unlike every rule above, this one is not diagnosed. A macro sees only syntax, and there the two shapes are identical: `@Clamped(range: 0...11)` and `@Boxed(value: 1)` are both attributes with arguments, and only the wrapper's own declaration — which a macro cannot resolve — says whether an `init(wrappedValue:)` exists. Warning on every wrapped property would mean warning about the far more common working case, so the macro stays quiet and lets the compiler report the mismatch.
+
+To copy such a property anyway, declare an initializer that takes the wrapped value and builds the backing wrapper itself. It suppresses the memberwise initializer, and the generated call resolves to it:
+
+```swift
+@Copying
+struct Model {
+    @Boxed(value: 1) var count: Int
+
+    init(count: Int) {
+        self._count = Boxed(value: count)
+    }
+}
+```
+
+### Reference storage
+
+`weak` and `unowned` are storage specifiers rather than exclusions, so a reference held either way is copied like any other stored property and keeps its specifier in the copy:
+
+```swift
+@Copying
+final class Node {
+    var name: String
+    weak var next: Node?
+
+    init(name: String, next: Node?) { … }
+}
+```
+
+The copy holds `next` weakly too, so it does not keep the referent alive. A `weak` property is always optional, so its parameter is a double optional and follows <doc:OptionalProperties>: `copying(next: nil)` keeps the current reference, while `copying(next: .some(nil))` clears it.
