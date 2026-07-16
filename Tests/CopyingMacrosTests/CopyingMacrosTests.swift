@@ -452,6 +452,83 @@ struct CopyingMacrosTests {
         )
     }
 
+    @Test("Copying macro copies a property-wrapped property by its wrapped type")
+    func copyingMacroCopiesPropertyWrapper() {
+        // The macro reads only the property's annotated (wrapped) type and ignores the
+        // wrapper attribute, so a wrapped property is copied like any other. This is
+        // correct as long as the wrapper offers `init(wrappedValue:)`, which the
+        // synthesized memberwise initializer relies on; see <doc:Limitations>.
+        assertMacroExpansionForTesting(
+            """
+            @Copying
+            struct Settings {
+                @Uppercased var code: String
+                var name: String
+            }
+            """,
+            expandedSource: """
+                struct Settings {
+                    @Uppercased var code: String
+                    var name: String
+
+                    /// Creates a copy of this instance with the specified properties modified.
+                    /// - Parameters:
+                    ///   - code: The new value for `code`, or `nil` to keep the current value.
+                    ///   - name: The new value for `name`, or `nil` to keep the current value.
+                    /// - Returns: A new instance with the specified modifications.
+                    func copying(
+                        code: (String)? = nil,
+                        name: (String)? = nil
+                    ) -> Settings {
+                        Settings(
+                            code: code ?? self.code,
+                            name: name ?? self.name
+                        )
+                    }
+                }
+                """,
+            macros: testMacros
+        )
+    }
+
+    @Test("Copying macro copies a property wrapper that takes attribute arguments")
+    func copyingMacroCopiesPropertyWrapperWithArguments() {
+        // Attribute arguments and an initial value do not change what the macro sees:
+        // it still copies the property by its wrapped type. The memberwise initializer
+        // reapplies the wrapper's arguments, so the configuration survives a copy.
+        assertMacroExpansionForTesting(
+            """
+            @Copying
+            struct Volume {
+                @Clamped(range: 0...11) var level: Int = 5
+                var label: String
+            }
+            """,
+            expandedSource: """
+                struct Volume {
+                    @Clamped(range: 0...11) var level: Int = 5
+                    var label: String
+
+                    /// Creates a copy of this instance with the specified properties modified.
+                    /// - Parameters:
+                    ///   - level: The new value for `level`, or `nil` to keep the current value.
+                    ///   - label: The new value for `label`, or `nil` to keep the current value.
+                    /// - Returns: A new instance with the specified modifications.
+                    func copying(
+                        level: (Int)? = nil,
+                        label: (String)? = nil
+                    ) -> Volume {
+                        Volume(
+                            level: level ?? self.level,
+                            label: label ?? self.label
+                        )
+                    }
+                }
+                """,
+            macros: testMacros
+        )
+    }
+
     @Test("Copying macro requires an explicit type annotation")
     func copyingMacroRequiresTypeAnnotation() {
         assertMacroExpansionForTesting(
