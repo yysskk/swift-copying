@@ -340,6 +340,118 @@ struct CopyingMacrosTests {
         )
     }
 
+    @Test("Copying macro includes a weak stored property")
+    func copyingMacroIncludesWeakProperty() {
+        // `weak` is a storage specifier, not one of the modifiers that exclude a
+        // property (`static`/`class`/`lazy`), so a weak reference is copied like any
+        // other stored property. Its optional type produces a double optional
+        // parameter, exactly as a plain optional would.
+        assertMacroExpansionForTesting(
+            """
+            @Copying
+            final class Node {
+                var name: String
+                weak var next: Node?
+            }
+            """,
+            expandedSource: """
+                final class Node {
+                    var name: String
+                    weak var next: Node?
+
+                    /// Creates a copy of this instance with the specified properties modified.
+                    /// - Parameters:
+                    ///   - name: The new value for `name`, or `nil` to keep the current value.
+                    ///   - next: The new value for `next`, or `nil` to keep the current value.
+                    /// - Returns: A new instance with the specified modifications.
+                    func copying(
+                        name: (String)? = nil,
+                        next: (Node?)? = nil
+                    ) -> Node {
+                        Node(
+                            name: name ?? self.name,
+                            next: next ?? self.next
+                        )
+                    }
+                }
+                """,
+            diagnostics: [
+                DiagnosticSpec(
+                    id: MessageID(domain: "CopyingMacros", id: "missingInitializer"),
+                    message:
+                        "@Copying requires 'Node' to declare 'init(name:next:)', which the generated 'copying' method calls",
+                    line: 1,
+                    column: 1,
+                    severity: .warning,
+                    fixIts: [FixItSpec(message: "Add 'init(name:next:)'")]
+                )
+            ],
+            macros: testMacros,
+            applyFixIts: ["Add 'init(name:next:)'"],
+            // The Fix-It carries the weak property through unchanged: its parameter keeps
+            // the optional type and the assignment stores it back into the weak variable.
+            fixedSource: """
+                @Copying
+                final class Node {
+                    var name: String
+                    weak var next: Node?
+
+                    init(name: String, next: Node?) {
+                        self.name = name
+                        self.next = next
+                    }
+                }
+                """
+        )
+    }
+
+    @Test("Copying macro includes an unowned stored property")
+    func copyingMacroIncludesUnownedProperty() {
+        // `unowned` is likewise only a storage specifier, so a non-optional unowned
+        // reference is copied as a non-optional parameter.
+        assertMacroExpansionForTesting(
+            """
+            @Copying
+            final class Edge {
+                unowned var origin: Node
+                var label: String
+
+                init(origin: Node, label: String) {
+                    self.origin = origin
+                    self.label = label
+                }
+            }
+            """,
+            expandedSource: """
+                final class Edge {
+                    unowned var origin: Node
+                    var label: String
+
+                    init(origin: Node, label: String) {
+                        self.origin = origin
+                        self.label = label
+                    }
+
+                    /// Creates a copy of this instance with the specified properties modified.
+                    /// - Parameters:
+                    ///   - origin: The new value for `origin`, or `nil` to keep the current value.
+                    ///   - label: The new value for `label`, or `nil` to keep the current value.
+                    /// - Returns: A new instance with the specified modifications.
+                    func copying(
+                        origin: (Node)? = nil,
+                        label: (String)? = nil
+                    ) -> Edge {
+                        Edge(
+                            origin: origin ?? self.origin,
+                            label: label ?? self.label
+                        )
+                    }
+                }
+                """,
+            macros: testMacros
+        )
+    }
+
     @Test("Copying macro requires an explicit type annotation")
     func copyingMacroRequiresTypeAnnotation() {
         assertMacroExpansionForTesting(

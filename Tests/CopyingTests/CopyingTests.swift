@@ -344,4 +344,54 @@ struct CopyingTests {
         #expect(copied.title == "Final")
         #expect(copied.tags == ["a"])
     }
+
+    @Test("Generated code carries a weak reference through a copy without retaining it")
+    func weakReferenceCompileTest() {
+        @Copying
+        final class Node {
+            var name: String
+            weak var next: Node?
+
+            init(name: String, next: Node?) {
+                self.name = name
+                self.next = next
+            }
+        }
+
+        var target: Node? = Node(name: "target", next: nil)
+        let holder = Node(name: "holder", next: target)
+        let copied = holder.copying(name: "holder copy")
+
+        // The copy keeps the same referent and stays weak.
+        #expect(copied.name == "holder copy")
+        #expect(copied.next === target)
+
+        // Dropping the last strong reference frees the referent, proving the copied
+        // property remained `weak` rather than silently becoming a strong reference.
+        target = nil
+        #expect(copied.next == nil)
+    }
+
+    @Test("Generated code preserves an unowned reference through a copy")
+    func unownedReferenceCompileTest() {
+        final class Account {}
+
+        @Copying
+        final class Card {
+            unowned var account: Account
+            var number: String
+
+            init(account: Account, number: String) {
+                self.account = account
+                self.number = number
+            }
+        }
+
+        let account = Account()
+        let card = Card(account: account, number: "1111")
+        let copied = card.copying(number: "2222")
+
+        #expect(copied.account === account)
+        #expect(copied.number == "2222")
+    }
 }
