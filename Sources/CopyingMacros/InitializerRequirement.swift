@@ -21,26 +21,36 @@ struct InitializerRequirement {
         "init(\(argumentLabels.map { "\($0):" }.joined()))"
     }
 
-    /// Whether `declaration` offers an initializer that the generated call can reach.
+    /// What keeps `declaration` from supplying the initializer the copy needs, or `nil`
+    /// when it supplies one.
     ///
-    /// A `struct` that declares no initializer of its own is always satisfied: Swift
+    /// A `struct` that declares no initializer of its own falls short of nothing: Swift
     /// synthesizes a memberwise initializer whose parameters are exactly the properties
     /// the macro copies. Declaring any initializer inside the `struct` body suppresses
     /// that synthesis, and a `class` or `actor` never gets one, so those must offer a
-    /// matching initializer themselves.
+    /// usable initializer themselves.
     ///
     /// Only the annotated declaration is inspected, which is all a macro can see. An
     /// initializer added in an extension or inherited from a superclass also satisfies
-    /// the call, so a negative answer means "no initializer is visible here" rather
-    /// than "the copy cannot be built" — hence the warning in ``CopyingDiagnostic``.
-    func isSatisfied(by declaration: some DeclGroupSyntax) -> Bool {
+    /// the call, so ``Shortfall/noInitializer`` means "none is visible here" rather than
+    /// "the copy cannot be built" — hence the warning in ``CopyingDiagnostic``.
+    func shortfall(of declaration: some DeclGroupSyntax) -> Shortfall? {
         let initializers = declaration.memberBlock.members.compactMap {
             $0.decl.as(InitializerDeclSyntax.self)
         }
         guard !initializers.isEmpty else {
-            return declaration.is(StructDeclSyntax.self)
+            return declaration.is(StructDeclSyntax.self) ? nil : .noInitializer
         }
-        return initializers.contains(where: accepts)
+        if initializers.contains(where: { acceptsArguments($0) && $0.isCallableAsPlainExpression }) {
+            return nil
+        }
+        // Singling out an initializer that takes the right arguments but cannot be
+        // called plainly gives a far better diagnostic than "declare this signature",
+        // which the author plainly tried to do.
+        if let unusable = initializers.first(where: acceptsArguments) {
+            return .unusableInitializer(unusable)
+        }
+        return .noInitializer
     }
 
     /// Whether a call passing these argument labels resolves to `initializer`.
@@ -50,7 +60,7 @@ struct InitializerRequirement {
     /// order among the parameters, and every parameter they skip past must be
     /// omittable. Parameter types are not compared: a macro sees only how a type is
     /// spelled, so `Int` and a typealias for it would look like a mismatch.
-    private func accepts(_ initializer: InitializerDeclSyntax) -> Bool {
+    private func acceptsArguments(_ initializer: InitializerDeclSyntax) -> Bool {
         var labels = argumentLabels[...]
         for parameter in initializer.signature.parameterClause.parameters {
             if let label = labels.first, parameter.argumentLabel == label {
@@ -60,6 +70,35 @@ struct InitializerRequirement {
             }
         }
         return labels.isEmpty
+    }
+}
+
+extension InitializerRequirement {
+    /// What keeps a declaration from supplying the initializer the copy needs.
+    enum Shortfall {
+        /// No initializer that takes the copied properties is visible on the
+        /// declaration.
+        case noInitializer
+        /// An initializer takes the copied properties but cannot be called the way
+        /// `copying` calls it.
+        case unusableInitializer(InitializerDeclSyntax)
+    }
+}
+
+extension InitializerDeclSyntax {
+    /// Whether `Type(…)` on its own can call this initializer.
+    ///
+    /// `copying` builds the copy with a plain call and returns the result as the type
+    /// itself, so an initializer it calls cannot be failable (the call would produce an
+    /// optional), throwing (it would need `try`), or `async` (it would need `await`).
+    fileprivate var isCallableAsPlainExpression: Bool {
+        guard optionalMark == nil else {
+            return false
+        }
+        guard let effectSpecifiers = signature.effectSpecifiers else {
+            return true
+        }
+        return effectSpecifiers.asyncSpecifier == nil && effectSpecifiers.throwsClause == nil
     }
 }
 

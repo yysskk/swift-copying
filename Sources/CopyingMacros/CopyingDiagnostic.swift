@@ -20,6 +20,9 @@ enum CopyingDiagnostic: DiagnosticMessage {
     /// The declaration does not declare an initializer that the generated `copying`
     /// method can call.
     case missingInitializer(typeName: String, signature: String)
+    /// The declaration's initializer takes the copied properties but cannot be called
+    /// the way the generated `copying` method calls it.
+    case unusableInitializer(signature: String)
 
     var message: String {
         switch self {
@@ -34,18 +37,21 @@ enum CopyingDiagnostic: DiagnosticMessage {
         case .missingInitializer(let typeName, let signature):
             return
                 "@Copying requires '\(typeName)' to declare '\(signature)', which the generated 'copying' method calls"
+        case .unusableInitializer(let signature):
+            return
+                "@Copying calls '\(signature)' to build the copy, so it cannot be failable, throwing, or async"
         }
     }
 
-    /// Every problem the macro can detect for certain is an error. The missing
-    /// initializer is the exception: an initializer declared in an extension or
+    /// Every problem the macro can detect for certain is an error. The two about the
+    /// initializer are the exception: an initializer declared in an extension or
     /// inherited from a superclass satisfies the generated call but is invisible to a
-    /// macro, so flagging it as an error would reject code that compiles.
+    /// macro, so flagging one as an error would reject code that compiles.
     var severity: DiagnosticSeverity {
         switch self {
         case .unsupportedDeclaration, .noStoredProperties, .missingTypeAnnotation, .tuplePatternBinding:
             return .error
-        case .missingInitializer:
+        case .missingInitializer, .unusableInitializer:
             return .warning
         }
     }
@@ -67,6 +73,8 @@ enum CopyingDiagnostic: DiagnosticMessage {
             return "tuplePatternBinding"
         case .missingInitializer:
             return "missingInitializer"
+        case .unusableInitializer:
+            return "unusableInitializer"
         }
     }
 }
