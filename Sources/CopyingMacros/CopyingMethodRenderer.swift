@@ -24,7 +24,7 @@ enum CopyingMethodRenderer {
             .joined(separator: "\n")
         let parameters =
             storedProperties
-            .map { "    \($0.name): (\($0.type))? = nil" }
+            .map { "    \($0.name): (\($0.parameterType))? = nil" }
             .joined(separator: ",\n")
         let arguments =
             storedProperties

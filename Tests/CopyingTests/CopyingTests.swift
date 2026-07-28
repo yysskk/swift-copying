@@ -266,6 +266,28 @@ struct CopyingTests {
         #expect(copiedWithValue.value == 100)
     }
 
+    @Test("Copying with an implicitly unwrapped optional property works correctly")
+    func implicitlyUnwrappedOptionalPropertyCompileTest() {
+        // The parameter drops the `!` and is a double optional like any other optional
+        // property's, so it follows the same keep/reset rules.
+        @Copying
+        struct Screen {
+            var title: String
+            var subtitle: String!
+        }
+
+        let screen = Screen(title: "Home", subtitle: "Welcome")
+        let copiedWithNil = screen.copying(subtitle: nil)
+        let copiedWithValue = screen.copying(subtitle: "Hello")
+        let copiedWithReset = screen.copying(subtitle: .some(nil))
+
+        #expect(copiedWithNil.subtitle == "Welcome")
+        #expect(copiedWithValue.subtitle == "Hello")
+        #expect(copiedWithReset.subtitle == nil)
+        // The property is still implicitly unwrapped in the copy.
+        #expect(copiedWithValue.subtitle.count == 5)
+    }
+
     @Test("Generated code for actor compiles and works correctly")
     func actorCompileTest() async {
         @Copying
