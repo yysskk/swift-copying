@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Spell the `copying` parameter of an implicitly unwrapped optional property, such as `var label: UILabel!`, as a plain optional. Swift only accepts `!` at the top level of a property's or a parameter's type, so the `(UILabel!)?` parameter generated before did not compile. It denotes the same type as `(UILabel?)?`, so the parameter takes the same arguments and the property stays implicitly unwrapped in the copy. The initializer the Fix-It writes is a top-level position and keeps the declared `UILabel!`.
+- Accept bindings that share one type annotation, such as `var x, y: Int`. Swift attaches the annotation to the last binding only, so every preceding one was reported as missing a type and the expansion failed on code that compiles. A binding now takes the annotation of a later binding in the same declaration, stopping at the first one with an initial value — which types itself by inference, and which Swift rejects sharing an annotation with anyway (`var x, y: Int = 0`).
 
 ## [1.4.0] - 2026-07-17
 

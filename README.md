@@ -178,7 +178,7 @@ The macro generates a parameter only for stored properties that can take part in
 
 **Rejected with a compile-time error:**
 
-- A copyable property without an explicit type annotation, e.g. `var count = 0` (a macro cannot infer the type — write `var count: Int = 0`)
+- A copyable property whose type is left to inference, e.g. `var count = 0` (a macro cannot infer the type — write `var count: Int = 0`). Bindings that share one annotation, e.g. `var x, y: Int`, are fine.
 - A `var` bound through a tuple pattern, e.g. `var (x, y) = (0, 0)`
 - A type with no copyable stored properties
 - Applying `@Copying` to anything other than a `struct`, `class`, or `actor`
