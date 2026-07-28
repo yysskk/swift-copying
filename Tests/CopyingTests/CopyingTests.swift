@@ -206,6 +206,23 @@ struct CopyingTests {
         #expect(copied.email == "john@example.com")
     }
 
+    @Test("Generated code for bindings sharing one type annotation works correctly")
+    func sharedTypeAnnotationCompileTest() {
+        @Copying
+        struct Point {
+            let x, y: Int
+            var label, unit: String
+        }
+
+        let point = Point(x: 10, y: 20, label: "origin", unit: "pt")
+        let copied = point.copying(y: 99, unit: "px")
+
+        #expect(copied.x == 10)
+        #expect(copied.y == 99)
+        #expect(copied.label == "origin")
+        #expect(copied.unit == "px")
+    }
+
     @Test("Generated code for struct with initialized let constants compiles and works correctly")
     func initializedLetConstantCompileTest() {
         @Copying

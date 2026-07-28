@@ -20,7 +20,7 @@ These properties are left out of `copying` without any diagnostic, because copyi
 
 The macro emits an error, so the mistake surfaces at compile time instead of corrupting copies:
 
-- **A copyable property without a type annotation**, such as `var count = 0`. The macro sees only syntax and cannot infer the type, so annotate it: `var count: Int = 0`. (Left unchecked, the property would silently reset to its default on every copy.)
+- **A copyable property whose type is left to inference**, such as `var count = 0`. The macro sees only syntax and cannot infer the type, so annotate it: `var count: Int = 0`. (Left unchecked, the property would silently reset to its default on every copy.) An annotation shared across the bindings of one declaration, as in `var x, y: Int`, is spelled out for all of them and needs no change.
 - **A `var` bound through a tuple pattern**, such as `var (x, y) = (0, 0)`. Declare each property on its own line so the macro can address them individually.
 - **A type with no copyable stored properties at all.** `@Copying` needs at least one property it can vary.
 - **Applying `@Copying` to anything other than a `struct`, `class`, or `actor`.**

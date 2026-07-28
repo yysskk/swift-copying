@@ -37,9 +37,11 @@ extension StoredProperty {
     ///
     /// Two problems are reported as diagnostics rather than silently skipped,
     /// because doing so would corrupt copies:
-    /// - A copyable property without an explicit type annotation. The macro only
-    ///   sees syntax and cannot infer the type; dropping the property would make
-    ///   every copy silently reset it to its default value.
+    /// - A copyable property whose type is left to inference, e.g. `var count = 0`.
+    ///   The macro only sees syntax and cannot infer the type; dropping the property
+    ///   would make every copy silently reset it to its default value. An annotation
+    ///   shared with a later binding in the same declaration does count as spelled
+    ///   out — see `declaredType(of:at:in:)`.
     /// - A `var` that binds several properties through a tuple pattern
     ///   (e.g. `var (a, b) = (0, 0)`). Such properties are part of the memberwise
     ///   initializer with defaults, so skipping them would make every copy silently
@@ -79,8 +81,9 @@ extension StoredProperty {
         }
 
         let isLet = variable.bindingSpecifier.tokenKind == .keyword(.let)
+        let bindings = Array(variable.bindings)
 
-        for binding in variable.bindings {
+        for (index, binding) in bindings.enumerated() {
             // Computed and coroutine-accessor properties are not stored.
             if let accessorBlock = binding.accessorBlock, !isStored(accessorBlock) {
                 continue
@@ -108,15 +111,48 @@ extension StoredProperty {
                 continue
             }
 
-            guard let typeAnnotation = binding.typeAnnotation else {
+            guard let type = declaredType(of: binding, at: index, in: bindings) else {
                 diagnostics.append(
                     CopyingDiagnostic.missingTypeAnnotation(propertyName: propertyName).diagnostic(at: binding)
                 )
                 continue
             }
 
-            properties.append(StoredProperty(name: propertyName, type: typeAnnotation.type.trimmed))
+            properties.append(StoredProperty(name: propertyName, type: type.trimmed))
         }
+    }
+
+    /// Returns the type `bindings[index]` spells out, or `nil` when the declaration
+    /// leaves it to inference and the macro therefore cannot see it.
+    ///
+    /// A declaration may write one annotation once and share it across several
+    /// bindings (`var x, y: Int` declares two `Int` properties). SwiftSyntax attaches
+    /// that annotation only to the binding that carries it, so a binding without one
+    /// takes the annotation of a later binding in the same declaration.
+    ///
+    /// The sharing stops at the first binding with an initial value, which types
+    /// itself by inference instead: that is why Swift accepts `var x = 0, y: String`
+    /// yet rejects `var x, y: Int = 0`.
+    private static func declaredType(
+        of binding: PatternBindingSyntax,
+        at index: Int,
+        in bindings: [PatternBindingSyntax]
+    ) -> TypeSyntax? {
+        if let typeAnnotation = binding.typeAnnotation {
+            return typeAnnotation.type
+        }
+        guard binding.initializer == nil else {
+            return nil
+        }
+        for laterBinding in bindings[(index + 1)...] {
+            guard laterBinding.initializer == nil else {
+                return nil
+            }
+            if let typeAnnotation = laterBinding.typeAnnotation {
+                return typeAnnotation.type
+            }
+        }
+        return nil
     }
 
     /// Returns whether an accessor block belongs to a stored property.
