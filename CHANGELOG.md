@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- A warning on a `class` that is not `final`, with a Fix-It that marks it. `copying` builds the copy by calling the annotated type's own initializer and returns it as that type, so a subclass inherited a method that rebuilt only the superclass: its own stored properties were dropped and the dynamic type changed, with nothing in the language to catch it. The Fix-It writes `final` after any modifier the class already carries and demotes an `open` class to `public final`, since `open` and `final` contradict each other. A `struct` and an `actor` cannot be subclassed and are never flagged. It is a warning rather than an error because a class nothing subclasses copies itself correctly.
+
 ### Fixed
 
 - Spell the `copying` parameter of an implicitly unwrapped optional property, such as `var label: UILabel!`, as a plain optional. Swift only accepts `!` at the top level of a property's or a parameter's type, so the `(UILabel!)?` parameter generated before did not compile. It denotes the same type as `(UILabel?)?`, so the parameter takes the same arguments and the property stays implicitly unwrapped in the copy. The initializer the Fix-It writes is a top-level position and keeps the declared `UILabel!`.

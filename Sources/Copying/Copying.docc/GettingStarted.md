@@ -59,6 +59,21 @@ final class User {
 
 See <doc:Limitations> for exactly which declarations are checked and why this is a warning.
 
+Mark a `class` `final`, as above. `copying` returns the type it is attached to, so a subclass would inherit a method that rebuilds only the superclass, silently dropping its own properties. The macro warns when the class is not `final` and offers a Fix-It that marks it:
+
+```swift
+@Copying
+class User {
+    let id: Int
+    let name: String
+
+    init(id: Int, name: String) { … }
+}
+// ⚠️ @Copying returns a new 'User' from 'copying', so a subclass inherits
+//    one that discards its own state; mark 'User' as 'final'
+//    Fix-It: Mark 'User' as 'final'
+```
+
 An `actor`'s `copying` method is actor-isolated, so call it with `await` from outside the actor:
 
 ```swift

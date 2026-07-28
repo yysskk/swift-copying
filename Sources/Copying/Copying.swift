@@ -28,5 +28,9 @@
 ///   property — because the generated method calls it. If it is missing, the macro
 ///   warns with the exact signature and a Fix-It that inserts it; see
 ///   <doc:Limitations>.
+/// - Note: A `class` should also be `final`. The generated method returns the type it
+///   is attached to, so a subclass inherits one that rebuilds only the superclass and
+///   silently discards its own state. The macro warns when the class is not `final`
+///   and offers a Fix-It that marks it; see <doc:Limitations>.
 @attached(member, names: named(copying))
 public macro Copying() = #externalMacro(module: "CopyingMacros", type: "CopyingMacro")

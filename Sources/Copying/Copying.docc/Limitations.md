@@ -27,6 +27,65 @@ The macro emits an error, so the mistake surfaces at compile time instead of cor
 
 When several properties break the rules, every violation is reported in a single build.
 
+### Classes that can be subclassed
+
+`copying` builds the copy by calling the annotated type's own initializer and returns it as that type. A subclass inherits that method unchanged, so a copy taken through it rebuilds only the superclass:
+
+```swift
+@Copying
+class Base {
+    var a: Int
+    init(a: Int) { self.a = a }
+}
+// ⚠️ @Copying returns a new 'Base' from 'copying', so a subclass inherits
+//    one that discards its own state; mark 'Base' as 'final'
+//    Fix-It: Mark 'Base' as 'final'
+
+final class Derived: Base {
+    var b: Int
+    init(a: Int, b: Int) { self.b = b; super.init(a: a) }
+}
+
+Derived(a: 1, b: 2).copying(a: 3)   // a 'Base' both statically and dynamically — 'b' is gone
+```
+
+Nothing in the language catches this: the call type-checks and the copy is silently the wrong instance. So the macro warns on every `class` that is not `final` and offers a Fix-It that marks it so — the same restriction Kotlin puts on a `data class`, for the same reason. A `struct` and an `actor` cannot be subclassed, so neither is ever flagged.
+
+The Fix-It writes `final` after any modifier the class already carries, giving `public final class`. An `open` class becomes `public final`, because `open` and `final` contradict each other; that keeps the class visible everywhere it was and takes away only the subclassing.
+
+It is a warning rather than an error because a class nothing subclasses copies itself perfectly well. `final` is how you say that, and saying it is what makes the copy correct.
+
+Annotating the subclass as well does not help. `@Copying` sees only the properties declared on the declaration it is attached to, so on a subclass it generates a `copying` over those alone, which calls an initializer taking those alone. The inherited properties are not carried across — they come back as whatever that initializer leaves them:
+
+```swift
+@Copying
+final class Derived: Base {
+    var b: Int
+    init(b: Int) { self.b = b; super.init(a: 0) }
+}
+
+let derived = Derived(b: 2)
+derived.a = 7
+derived.copying(b: 3).a   // 0, not 7 — 'copying(b:)' rebuilds through 'init(b:)'
+```
+
+The two methods are overloads rather than an override, so this trades the lost subclass state for lost superclass state instead of fixing anything.
+
+Overriding `copying` by hand does fix it, inside the module that declares the superclass. Swift lets an override narrow the return type to the subclass:
+
+```swift
+final class Derived: Base {
+    var b: Int
+    init(a: Int, b: Int) { self.b = b; super.init(a: a) }
+
+    override func copying(a: Int? = nil) -> Derived {
+        Derived(a: a ?? self.a, b: self.b)
+    }
+}
+```
+
+From another module it is not an option. The generated method carries the type's access level, and an `open` class produces a `public` one, which Swift refuses to let a subclass override outside the module that declares it. A subclass there is stuck with the inherited `copying` and has no way to correct it, so an `open` class is flagged like any other — even though `final` is the opposite of what `open` asks for. A type genuinely meant to be subclassed across modules is a type to write `copying` for by hand.
+
 ### The initializer requirement
 
 The generated method builds the copy by calling `TypeName(label: value, …)` using each copyable property's name as the argument label. A `struct` gets exactly this from its memberwise initializer for free. A `class` or `actor` must declare a matching initializer yourself — see <doc:GettingStarted>.
@@ -81,9 +140,9 @@ There is no Fix-It here, because that initializer has to change rather than be j
 
 An `init!` is accepted. It is failable too, but its implicitly unwrapped result converts to the type itself, so the call compiles — a copy traps instead of returning `nil`.
 
-### Why these are warnings
+### Why the initializer rules are warnings
 
-Every other rule above is an error, but the two about initializers are warnings, because a macro only ever sees the declaration it is attached to. An initializer added in an extension, or inherited from a superclass, satisfies the generated call while being invisible to the check:
+Both initializer rules are warnings rather than errors, because a macro only ever sees the declaration it is attached to. An initializer added in an extension, or inherited from a superclass, satisfies the generated call while being invisible to the check:
 
 ```swift
 @Copying

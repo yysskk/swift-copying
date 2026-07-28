@@ -94,7 +94,7 @@ struct CopyingTests {
     @Test("Generated code for class compiles and works correctly")
     func classCompileTest() {
         @Copying
-        class User {
+        final class User {
             let id: Int
             let username: String
 
@@ -147,7 +147,7 @@ struct CopyingTests {
     @Test("Generated code for generic class compiles and works correctly")
     func genericClassCompileTest() {
         @Copying
-        class Container<T> {
+        final class Container<T> {
             let item: T
 
             init(item: T) {
@@ -404,7 +404,7 @@ struct CopyingTests {
         // `init!` returns an implicitly unwrapped optional, which converts to the type
         // itself, so the generated call type-checks and no diagnostic is warranted.
         @Copying
-        class Port {
+        final class Port {
             let number: Int
 
             init!(number: Int) {
@@ -425,7 +425,7 @@ struct CopyingTests {
     @Test("Generated code for an initializer with extra omittable parameters works correctly")
     func initializerWithOmittableParametersCompileTest() {
         @Copying
-        class Document {
+        final class Document {
             let title: String
             let tags: [String]
 
