@@ -4,7 +4,7 @@ Learn which stored properties `copying` includes and what the macro requires of 
 
 ## Overview
 
-``Copying()`` generates a parameter only for the stored properties that can take part in a copy. It skips some declarations silently and rejects others with a compile-time error.
+``Copying()`` generates a parameter only for the stored properties that can take part in a copy. It skips some declarations silently, rejects others with a compile-time error, and warns about the ones whose correctness turns on code it cannot see.
 
 ### Properties that are skipped
 
