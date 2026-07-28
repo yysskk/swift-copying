@@ -66,7 +66,7 @@ let jane = john.copying(name: "Jane", age: 25)
 
 ### Classes
 
-A `class` must declare an initializer shaped like a struct's memberwise initializer — one argument per copyable stored property, labelled with the property's name — because the generated method calls it:
+A `class` should be `final`, and must declare an initializer shaped like a struct's memberwise initializer — one argument per copyable stored property, labelled with the property's name — because the generated method calls it:
 
 ```swift
 @Copying
@@ -92,6 +92,14 @@ Leave the initializer out and the macro tells you exactly which one to add, with
 ⚠️ @Copying requires 'User' to declare 'init(id:username:isActive:)',
    which the generated 'copying' method calls
    Fix-It: Add 'init(id:username:isActive:)'
+```
+
+Leave `final` out and the macro warns too. `copying` returns the type it is attached to, so a subclass would inherit a method that rebuilds only the superclass — dropping the subclass's own properties along with its dynamic type, with nothing in the language to catch it:
+
+```
+⚠️ @Copying returns a new 'User' from 'copying', so a subclass inherits one
+   that discards its own state; mark 'User' as 'final'
+   Fix-It: Mark 'User' as 'final'
 ```
 
 ### Actors
@@ -187,8 +195,9 @@ The macro generates a parameter only for stored properties that can take part in
 
 - A `class` or `actor` (or a `struct` that declares its own initializer) with no initializer matching the generated call. The warning names the signature and offers a Fix-It that writes it.
 - An initializer that takes the copied properties but is `init?`, throwing, or `async`, none of which `copying` can call as a plain expression. (`init!` is fine — its result unwraps implicitly.)
+- A `class` that is not `final`, whose subclasses would inherit a `copying` that rebuilds only the superclass. The Fix-It marks the class `final`, demoting an `open` one to `public final`.
 
-These are warnings rather than errors because an initializer declared in an extension or inherited from a superclass satisfies the call but is invisible to a macro, which only sees the declaration it is attached to.
+The initializer warnings are not errors because an initializer declared in an extension or inherited from a superclass satisfies the call but is invisible to a macro, which only sees the declaration it is attached to. The `final` warning is not an error because a class nothing subclasses copies itself correctly.
 
 The generated method inherits the type's access level: an `open` type produces a `public` method, and a `private` type produces a `fileprivate` one, so the method is callable exactly where the type is.
 

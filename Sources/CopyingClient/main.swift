@@ -10,7 +10,7 @@ struct Person {
 
 // Example with class
 @Copying
-class User {
+final class User {
     let id: Int
     let username: String
     var isActive: Bool

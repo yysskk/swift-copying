@@ -23,6 +23,9 @@ enum CopyingDiagnostic: DiagnosticMessage {
     /// The declaration's initializer takes the copied properties but cannot be called
     /// the way the generated `copying` method calls it.
     case unusableInitializer(signature: String)
+    /// The declaration is a `class` that can still be subclassed, so a subclass would
+    /// inherit a `copying` that rebuilds only the superclass.
+    case subclassableClass(typeName: String)
 
     var message: String {
         switch self {
@@ -40,18 +43,22 @@ enum CopyingDiagnostic: DiagnosticMessage {
         case .unusableInitializer(let signature):
             return
                 "@Copying calls '\(signature)' to build the copy, so it cannot be failable ('init?'), throwing, or async"
+        case .subclassableClass(let typeName):
+            return
+                "@Copying returns a new '\(typeName)' from 'copying', so a subclass inherits one that discards its own state; mark '\(typeName)' as 'final'"
         }
     }
 
-    /// Every problem the macro can detect for certain is an error. The two about the
-    /// initializer are the exception: an initializer declared in an extension or
-    /// inherited from a superclass satisfies the generated call but is invisible to a
-    /// macro, so flagging one as an error would reject code that compiles.
+    /// Every problem the macro can detect for certain is an error. The three that turn
+    /// on code the macro cannot see are warnings: the two about the initializer,
+    /// because one declared in an extension or inherited from a superclass satisfies
+    /// the generated call while being invisible here, and the one about a subclassable
+    /// class, because a class that nothing subclasses copies itself correctly.
     var severity: DiagnosticSeverity {
         switch self {
         case .unsupportedDeclaration, .noStoredProperties, .missingTypeAnnotation, .tuplePatternBinding:
             return .error
-        case .missingInitializer, .unusableInitializer:
+        case .missingInitializer, .unusableInitializer, .subclassableClass:
             return .warning
         }
     }
@@ -75,6 +82,8 @@ enum CopyingDiagnostic: DiagnosticMessage {
             return "missingInitializer"
         case .unusableInitializer:
             return "unusableInitializer"
+        case .subclassableClass:
+            return "subclassableClass"
         }
     }
 }

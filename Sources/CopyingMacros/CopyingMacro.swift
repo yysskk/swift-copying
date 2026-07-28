@@ -42,6 +42,18 @@ public struct CopyingMacro: MemberMacro {
             throw CopyingDiagnostic.noStoredProperties.error(at: node)
         }
 
+        // A class that can still be subclassed hands `copying` down to its subclasses,
+        // and an inherited one rebuilds only the superclass — see ``SubclassingHazard``.
+        // This only warns, and the method is still generated: a class nothing subclasses
+        // copies itself correctly.
+        if let subclassingHazard = SubclassingHazard(declaration: declaration) {
+            context.diagnose(
+                CopyingDiagnostic
+                    .subclassableClass(typeName: typeName)
+                    .diagnostic(at: subclassingHazard.anchor, fixIts: [subclassingHazard.fixIt()])
+            )
+        }
+
         // Report the initializer the copy needs against the declaration itself, so the
         // mistake surfaces there instead of as an error inside the expansion, pointing
         // at generated code the author never wrote. These only warn, and the method is
