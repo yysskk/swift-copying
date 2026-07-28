@@ -5,8 +5,24 @@ import SwiftSyntax
 struct StoredProperty {
     /// The property's name, used as both the parameter label and the argument label.
     let name: String
-    /// The property's spelled-out type, used verbatim as the `copying` parameter type.
-    let type: String
+    /// The property's type, spelled the way the declaration spells it.
+    let type: TypeSyntax
+
+    /// The type the `copying` parameter wraps in an optional.
+    ///
+    /// This is the declared type, except for an implicitly unwrapped optional (`T!`),
+    /// which is spelled `T?`. Swift only accepts `!` at the top level of a property's
+    /// or a parameter's type (SE-0054), so the `(T!)? = nil` parameter the renderer
+    /// would otherwise write is rejected outright. `T!` denotes the very same type as
+    /// `T?` — the `!` only asks for implicit unwrapping at each use — so the parameter
+    /// still accepts exactly the same arguments, and the property still receives the
+    /// optional it is declared with.
+    var parameterType: TypeSyntax {
+        guard let implicitlyUnwrapped = type.as(ImplicitlyUnwrappedOptionalTypeSyntax.self) else {
+            return type
+        }
+        return TypeSyntax(OptionalTypeSyntax(wrappedType: implicitlyUnwrapped.wrappedType.trimmed))
+    }
 }
 
 extension StoredProperty {
@@ -99,7 +115,7 @@ extension StoredProperty {
                 continue
             }
 
-            properties.append(StoredProperty(name: propertyName, type: typeAnnotation.type.trimmedDescription))
+            properties.append(StoredProperty(name: propertyName, type: typeAnnotation.type.trimmed))
         }
     }
 

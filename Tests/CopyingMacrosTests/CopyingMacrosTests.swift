@@ -125,6 +125,101 @@ struct CopyingMacrosTests {
         )
     }
 
+    @Test("Copying macro spells an implicitly unwrapped optional property as a plain optional")
+    func copyingMacroWithImplicitlyUnwrappedOptionalProperty() {
+        // Swift only accepts `!` at the top level of a property's or a parameter's type,
+        // so the parameter is spelled `(String?)?`; the `(String!)?` the declared type
+        // would produce does not compile. It denotes the same type, and the double
+        // optional behaves exactly as a plain optional property's does.
+        assertMacroExpansionForTesting(
+            """
+            @Copying
+            struct Screen {
+                var title: String
+                var subtitle: String!
+            }
+            """,
+            expandedSource: """
+                struct Screen {
+                    var title: String
+                    var subtitle: String!
+
+                    /// Creates a copy of this instance with the specified properties modified.
+                    /// - Parameters:
+                    ///   - title: The new value for `title`, or `nil` to keep the current value.
+                    ///   - subtitle: The new value for `subtitle`, or `nil` to keep the current value.
+                    /// - Returns: A new instance with the specified modifications.
+                    func copying(
+                        title: (String)? = nil,
+                        subtitle: (String?)? = nil
+                    ) -> Screen {
+                        Screen(
+                            title: title ?? self.title,
+                            subtitle: subtitle ?? self.subtitle
+                        )
+                    }
+                }
+                """,
+            macros: testMacros
+        )
+    }
+
+    @Test("Copying macro keeps an implicitly unwrapped optional in the initializer it writes")
+    func copyingMacroWithImplicitlyUnwrappedOptionalPropertyInFixIt() {
+        // Only the `copying` parameter has to drop the `!`, because it nests the type in
+        // another optional. An initializer parameter is a top-level position, so the
+        // Fix-It writes the property's type as declared — the memberwise initializer a
+        // `struct` would have been given.
+        assertMacroExpansionForTesting(
+            """
+            @Copying
+            final class Screen {
+                var subtitle: String!
+            }
+            """,
+            expandedSource: """
+                final class Screen {
+                    var subtitle: String!
+
+                    /// Creates a copy of this instance with the specified properties modified.
+                    /// - Parameters:
+                    ///   - subtitle: The new value for `subtitle`, or `nil` to keep the current value.
+                    /// - Returns: A new instance with the specified modifications.
+                    func copying(
+                        subtitle: (String?)? = nil
+                    ) -> Screen {
+                        Screen(
+                            subtitle: subtitle ?? self.subtitle
+                        )
+                    }
+                }
+                """,
+            diagnostics: [
+                DiagnosticSpec(
+                    id: MessageID(domain: "CopyingMacros", id: "missingInitializer"),
+                    message:
+                        "@Copying requires 'Screen' to declare 'init(subtitle:)', which the generated 'copying' method calls",
+                    line: 1,
+                    column: 1,
+                    severity: .warning,
+                    fixIts: [FixItSpec(message: "Add 'init(subtitle:)'")]
+                )
+            ],
+            macros: testMacros,
+            applyFixIts: ["Add 'init(subtitle:)'"],
+            fixedSource: """
+                @Copying
+                final class Screen {
+                    var subtitle: String!
+
+                    init(subtitle: String!) {
+                        self.subtitle = subtitle
+                    }
+                }
+                """
+        )
+    }
+
     @Test("Copying macro skips computed properties")
     func copyingMacroSkipsComputedProperties() {
         assertMacroExpansionForTesting(

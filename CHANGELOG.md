@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Spell the `copying` parameter of an implicitly unwrapped optional property, such as `var label: UILabel!`, as a plain optional. Swift only accepts `!` at the top level of a property's or a parameter's type, so the `(UILabel!)?` parameter generated before did not compile. It denotes the same type as `(UILabel?)?`, so the parameter takes the same arguments and the property stays implicitly unwrapped in the copy. The initializer the Fix-It writes is a top-level position and keeps the declared `UILabel!`.
+
 ## [1.4.0] - 2026-07-17
 
 ### Added

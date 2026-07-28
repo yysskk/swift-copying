@@ -45,3 +45,23 @@ config.copying(timeout: newTimeout)  // timeout == nil
 ```
 
 > Important: Because the bare `nil` literal means "keep", you cannot reset an optional with `copying(timeout: nil)`. Use `.some(nil)`, or pass a value of the property's own optional type.
+
+### Implicitly unwrapped optionals
+
+A property declared `T!` is an optional as well, so `copying` treats it as one and everything above applies unchanged:
+
+```swift
+@Copying
+final class Screen {
+    var subtitle: String!
+
+    init(subtitle: String!) { … }
+}
+
+let screen = Screen(subtitle: "Welcome")
+screen.copying()                      // subtitle == "Welcome"
+screen.copying(subtitle: "Hello")     // subtitle == "Hello"
+screen.copying(subtitle: .some(nil))  // subtitle == nil
+```
+
+The parameter itself is spelled `(String?)?` rather than `(String!)?`, because Swift only accepts `!` at the top level of a property's or a parameter's type and here it is nested in the outer optional. That is the same type either way, so the parameter takes the same arguments, and the property is still implicitly unwrapped in the copy.
