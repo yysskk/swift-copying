@@ -21,7 +21,7 @@ struct SubclassingHazard {
     /// `class` can be subclassed, and a `final` one already rules it out.
     init?(declaration: some DeclGroupSyntax) {
         guard let classDeclaration = declaration.as(ClassDeclSyntax.self),
-            !classDeclaration.modifiers.contains(where: { $0.name.tokenKind == .keyword(.final) })
+            !classDeclaration.modifiers.contains(anyOf: .final)
         else {
             return nil
         }
