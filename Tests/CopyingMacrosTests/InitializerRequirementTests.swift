@@ -662,7 +662,7 @@ struct InitializerRequirementTests {
         )
     }
 
-    @Test("Fix-It initializer carries the access level of the generated method")
+    @Test("Copying macro Fix-It initializer carries the access level of the generated method")
     func copyingMacroFixItCarriesAccessLevel() {
         assertMacroExpansionForTesting(
             """
@@ -726,7 +726,7 @@ struct InitializerRequirementTests {
         )
     }
 
-    @Test("Fix-It initializer follows the indentation of a nested type")
+    @Test("Copying macro Fix-It initializer follows the indentation of a nested type")
     func copyingMacroFixItFollowsNestedIndentation() {
         assertMacroExpansionForTesting(
             """
