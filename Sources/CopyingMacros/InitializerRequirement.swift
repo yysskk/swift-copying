@@ -1,6 +1,7 @@
 import SwiftBasicFormat
 import SwiftDiagnostics
 import SwiftSyntax
+import SwiftSyntaxBuilder
 
 /// The initializer that the generated `copying` method calls to build the copy.
 ///
