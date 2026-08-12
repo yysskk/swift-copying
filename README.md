@@ -18,7 +18,7 @@ Add the package to your `Package.swift`:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/yysskk/swift-copying.git", from: "1.2.0")
+    .package(url: "https://github.com/yysskk/swift-copying.git", from: "1.4.0")
 ]
 ```
 
