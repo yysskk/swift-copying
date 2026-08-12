@@ -400,8 +400,8 @@ struct ExpansionTests {
         )
     }
 
-    @Test("Copying macro with generic types")
-    func copyingMacroWithGenericType() {
+    @Test("Copying macro with collection type properties")
+    func copyingMacroWithCollectionTypeProperties() {
         assertMacroExpansionForTesting(
             """
             @Copying

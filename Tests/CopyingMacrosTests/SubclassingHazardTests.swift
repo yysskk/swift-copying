@@ -64,7 +64,7 @@ struct SubclassingHazardTests {
         )
     }
 
-    @Test("Fix-It marking a class final keeps the modifiers it already has")
+    @Test("Copying macro Fix-It marking a class final keeps the modifiers it already has")
     func copyingMacroFixItKeepsExistingModifiersWhenMarkingFinal() {
         assertMacroExpansionForTesting(
             """
@@ -124,7 +124,7 @@ struct SubclassingHazardTests {
         )
     }
 
-    @Test("Fix-It marking an open class final demotes it to public")
+    @Test("Copying macro Fix-It marking an open class final demotes it to public")
     func copyingMacroFixItDemotesOpenClassWhenMarkingFinal() {
         assertMacroExpansionForTesting(
             """
@@ -186,7 +186,7 @@ struct SubclassingHazardTests {
         )
     }
 
-    @Test("Fix-It marking a class final follows the indentation of a nested type")
+    @Test("Copying macro Fix-It marking a class final follows the indentation of a nested type")
     func copyingMacroFixItFollowsNestedIndentationWhenMarkingFinal() {
         assertMacroExpansionForTesting(
             """
