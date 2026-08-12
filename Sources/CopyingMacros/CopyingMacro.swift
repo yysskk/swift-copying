@@ -8,8 +8,8 @@ import SwiftSyntaxMacros
 /// returns a new instance with a chosen subset of stored properties replaced. The
 /// heavy lifting is delegated to ``StoredProperty/extract(from:)`` (which selects
 /// the copyable properties and reports problematic ones) and
-/// ``CopyingMethodRenderer`` (which renders the method); this type only dispatches
-/// on the declaration kind and orchestrates the two steps.
+/// ``CopyingMethodRenderer`` (which renders the method); this type only admits the
+/// declaration and orchestrates the steps.
 public struct CopyingMacro: MemberMacro {
     public static func expansion(
         of node: AttributeSyntax,
@@ -17,18 +17,7 @@ public struct CopyingMacro: MemberMacro {
         conformingTo protocols: [TypeSyntax],
         in context: some MacroExpansionContext
     ) throws -> [DeclSyntax] {
-        let typeName: String
-        let genericParameterClause: GenericParameterClauseSyntax?
-        if let structDecl = declaration.as(StructDeclSyntax.self) {
-            typeName = structDecl.name.text
-            genericParameterClause = structDecl.genericParameterClause
-        } else if let classDecl = declaration.as(ClassDeclSyntax.self) {
-            typeName = classDecl.name.text
-            genericParameterClause = classDecl.genericParameterClause
-        } else if let actorDecl = declaration.as(ActorDeclSyntax.self) {
-            typeName = actorDecl.name.text
-            genericParameterClause = actorDecl.genericParameterClause
-        } else {
+        guard let target = CopyingTarget(declaration: declaration) else {
             throw CopyingDiagnostic.unsupportedDeclaration.error(at: node)
         }
 
@@ -44,7 +33,7 @@ public struct CopyingMacro: MemberMacro {
         if let subclassingHazard = SubclassingHazard(declaration: declaration) {
             context.diagnose(
                 CopyingDiagnostic
-                    .subclassableClass(typeName: typeName)
+                    .subclassableClass(typeName: target.typeName)
                     .diagnostic(at: subclassingHazard.anchor, fixIts: [subclassingHazard.fixIt()])
             )
         }
@@ -59,7 +48,7 @@ public struct CopyingMacro: MemberMacro {
         case .noInitializer:
             context.diagnose(
                 CopyingDiagnostic
-                    .missingInitializer(typeName: typeName, signature: initializerRequirement.signature)
+                    .missingInitializer(typeName: target.typeName, signature: initializerRequirement.signature)
                     .diagnostic(at: node, fixIts: [initializerRequirement.fixIt(insertingInto: declaration)])
             )
         case .unusableInitializer(let initializer):
@@ -76,11 +65,40 @@ public struct CopyingMacro: MemberMacro {
         }
 
         let copyingMethod = CopyingMethodRenderer.render(
-            typeName: typeName,
-            genericParameterClause: genericParameterClause,
+            typeName: target.typeName,
+            genericParameterClause: target.genericParameterClause,
             modifiers: declaration.modifiers,
             storedProperties: storedProperties
         )
         return [copyingMethod]
+    }
+}
+
+/// A declaration `@Copying` can generate a `copying` method for, along with what
+/// rendering that method needs from it.
+///
+/// The three kinds are listed out rather than recognized by their syntax traits
+/// alone. An `enum` is also a named declaration with generic parameters, so a trait
+/// check would admit one, and an enum has no stored properties to copy.
+private struct CopyingTarget {
+    /// The type's name, as the generated method spells it in the call it builds.
+    let typeName: String
+    /// The type's generic parameters, if any, to reattach to the return type.
+    let genericParameterClause: GenericParameterClauseSyntax?
+
+    /// Creates the target `declaration` describes, or `nil` when the macro does not
+    /// support that kind of declaration.
+    init?(declaration: some DeclGroupSyntax) {
+        guard
+            declaration.is(StructDeclSyntax.self)
+                || declaration.is(ClassDeclSyntax.self)
+                || declaration.is(ActorDeclSyntax.self),
+            let named = declaration.asProtocol(NamedDeclSyntax.self),
+            let generic = declaration.asProtocol(WithGenericParametersSyntax.self)
+        else {
+            return nil
+        }
+        typeName = named.name.text
+        genericParameterClause = generic.genericParameterClause
     }
 }
