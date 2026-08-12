@@ -27,8 +27,7 @@ struct StoredProperty {
 
 extension StoredProperty {
     /// Extracts every stored property that should participate in a copy from the
-    /// members of the annotated declaration, together with any diagnostics the
-    /// macro should report.
+    /// members of the annotated declaration.
     ///
     /// Members that cannot be copied are skipped: type-level (`static`/`class`) and
     /// `lazy` properties, computed and coroutine-accessor properties, and `let`
@@ -41,118 +40,125 @@ extension StoredProperty {
     ///   The macro only sees syntax and cannot infer the type; dropping the property
     ///   would make every copy silently reset it to its default value. An annotation
     ///   shared with a later binding in the same declaration does count as spelled
-    ///   out — see `declaredType(of:at:in:)`.
+    ///   out — see `declaredTypes(in:)`.
     /// - A `var` that binds several properties through a tuple pattern
     ///   (e.g. `var (a, b) = (0, 0)`). Such properties are part of the memberwise
     ///   initializer with defaults, so skipping them would make every copy silently
     ///   reset them. A `let` tuple binding is skipped silently: it is immutable and
     ///   Swift does not allow it as struct storage anyway.
     ///
-    /// Diagnostics are collected across all bindings so a single compilation reports
-    /// every offending property at once.
-    static func extract(
-        from declaration: some DeclGroupSyntax
-    ) -> (properties: [StoredProperty], diagnostics: [Diagnostic]) {
+    /// - Throws: A ``SwiftDiagnostics/DiagnosticsError`` carrying every offending
+    ///   binding, so a single compilation reports them all at once.
+    static func extract(from declaration: some DeclGroupSyntax) throws -> [StoredProperty] {
         var properties: [StoredProperty] = []
         var diagnostics: [Diagnostic] = []
+
         for member in declaration.memberBlock.members {
-            guard let variable = member.decl.as(VariableDeclSyntax.self) else {
-                continue
-            }
-            collectStoredProperties(in: variable, into: &properties, diagnostics: &diagnostics)
-        }
-        return (properties, diagnostics)
-    }
-
-    /// Appends the copyable stored properties declared by a single `var`/`let`
-    /// declaration (which may bind several properties, e.g. `let x: Int, y: Int`),
-    /// recording a diagnostic for any binding that cannot be copied safely.
-    private static func collectStoredProperties(
-        in variable: VariableDeclSyntax,
-        into properties: inout [StoredProperty],
-        diagnostics: inout [Diagnostic]
-    ) {
-        // Skip type-level (`static`/`class`) and `lazy` properties. A `static`/`class`
-        // property is not part of an instance's state, and a `lazy` property would
-        // require a mutating getter to read from `copying`; a fresh copy recomputes
-        // it on demand anyway.
-        guard !variable.modifiers.contains(anyOf: .static, .class, .lazy) else {
-            return
-        }
-
-        let isLet = variable.bindingSpecifier.tokenKind == .keyword(.let)
-        let bindings = Array(variable.bindings)
-
-        for (index, binding) in bindings.enumerated() {
-            // Computed and coroutine-accessor properties are not stored.
-            if let accessorBlock = binding.accessorBlock, !isStored(accessorBlock) {
+            // Skip type-level (`static`/`class`) and `lazy` properties. A `static`/`class`
+            // property is not part of an instance's state, and a `lazy` property would
+            // require a mutating getter to read from `copying`; a fresh copy recomputes
+            // it on demand anyway.
+            guard let variable = member.decl.as(VariableDeclSyntax.self),
+                !variable.modifiers.contains(anyOf: .static, .class, .lazy)
+            else {
                 continue
             }
 
-            // A tuple pattern binds several properties at once and cannot be copied
-            // individually. Only `var` is flagged: a `var` tuple is part of the
-            // memberwise initializer, so skipping it would silently reset those
-            // properties on every copy.
-            if binding.pattern.is(TuplePatternSyntax.self) {
-                if !isLet {
-                    diagnostics.append(CopyingDiagnostic.tuplePatternBinding.diagnostic(at: binding.pattern))
+            let isLet = variable.bindingSpecifier.tokenKind == .keyword(.let)
+            for (binding, declaredType) in zip(variable.bindings, declaredTypes(in: variable.bindings)) {
+                switch outcome(of: binding, declaredType: declaredType, isLet: isLet) {
+                case .copyable(let property):
+                    properties.append(property)
+                case .problem(let diagnostic):
+                    diagnostics.append(diagnostic)
+                case .notCopyable:
+                    break
                 }
-                continue
             }
-
-            guard let pattern = binding.pattern.as(IdentifierPatternSyntax.self) else {
-                continue
-            }
-            let propertyName = pattern.identifier.text
-
-            // A `let` with an initial value can never hold a different value and is
-            // excluded from the memberwise initializer, so it cannot be copied.
-            if isLet, binding.initializer != nil {
-                continue
-            }
-
-            guard let type = declaredType(of: binding, at: index, in: bindings) else {
-                diagnostics.append(
-                    CopyingDiagnostic.missingTypeAnnotation(propertyName: propertyName).diagnostic(at: binding)
-                )
-                continue
-            }
-
-            properties.append(StoredProperty(name: propertyName, type: type.trimmed))
         }
+
+        guard diagnostics.isEmpty else {
+            throw DiagnosticsError(diagnostics: diagnostics)
+        }
+        return properties
     }
 
-    /// Returns the type `bindings[index]` spells out, or `nil` when the declaration
-    /// leaves it to inference and the macro therefore cannot see it.
+    /// How a single binding takes part in a copy.
+    private enum BindingOutcome {
+        /// The binding declares a property the copy passes on.
+        case copyable(StoredProperty)
+        /// The binding cannot be copied, and leaving it out would corrupt copies.
+        case problem(Diagnostic)
+        /// The binding declares nothing a copy has to carry.
+        case notCopyable
+    }
+
+    /// Classifies one binding of a `var`/`let` declaration, given the type it spells
+    /// out (see `declaredTypes(in:)`) and whether the declaration binds constants.
+    private static func outcome(
+        of binding: PatternBindingSyntax,
+        declaredType: TypeSyntax?,
+        isLet: Bool
+    ) -> BindingOutcome {
+        // Computed and coroutine-accessor properties are not stored.
+        if let accessorBlock = binding.accessorBlock, !isStored(accessorBlock) {
+            return .notCopyable
+        }
+
+        // A tuple pattern binds several properties at once and cannot be copied
+        // individually. Only `var` is flagged: a `var` tuple is part of the
+        // memberwise initializer, so skipping it would silently reset those
+        // properties on every copy.
+        if binding.pattern.is(TuplePatternSyntax.self) {
+            guard !isLet else {
+                return .notCopyable
+            }
+            return .problem(CopyingDiagnostic.tuplePatternBinding.diagnostic(at: binding.pattern))
+        }
+
+        guard let pattern = binding.pattern.as(IdentifierPatternSyntax.self) else {
+            return .notCopyable
+        }
+
+        // A `let` with an initial value can never hold a different value and is
+        // excluded from the memberwise initializer, so it cannot be copied.
+        if isLet, binding.initializer != nil {
+            return .notCopyable
+        }
+
+        guard let declaredType else {
+            let propertyName = pattern.identifier.text
+            return .problem(CopyingDiagnostic.missingTypeAnnotation(propertyName: propertyName).diagnostic(at: binding))
+        }
+        return .copyable(StoredProperty(name: pattern.identifier.text, type: declaredType.trimmed))
+    }
+
+    /// The type each binding of a declaration spells out, in order, with `nil` where
+    /// the declaration leaves it to inference and the macro therefore cannot see it.
     ///
     /// A declaration may write one annotation once and share it across several
     /// bindings (`var x, y: Int` declares two `Int` properties). SwiftSyntax attaches
     /// that annotation only to the binding that carries it, so a binding without one
-    /// takes the annotation of a later binding in the same declaration.
+    /// takes the annotation of a later binding in the same declaration. Walking the
+    /// bindings backwards carries that annotation to every binding it covers in one
+    /// pass.
     ///
     /// The sharing stops at the first binding with an initial value, which types
     /// itself by inference instead: that is why Swift accepts `var x = 0, y: String`
     /// yet rejects `var x, y: Int = 0`.
-    private static func declaredType(
-        of binding: PatternBindingSyntax,
-        at index: Int,
-        in bindings: [PatternBindingSyntax]
-    ) -> TypeSyntax? {
-        if let typeAnnotation = binding.typeAnnotation {
-            return typeAnnotation.type
-        }
-        guard binding.initializer == nil else {
-            return nil
-        }
-        for laterBinding in bindings[(index + 1)...] {
-            guard laterBinding.initializer == nil else {
-                return nil
-            }
-            if let typeAnnotation = laterBinding.typeAnnotation {
-                return typeAnnotation.type
+    private static func declaredTypes(in bindings: PatternBindingListSyntax) -> [TypeSyntax?] {
+        var types: [TypeSyntax?] = []
+        var sharedType: TypeSyntax?
+
+        for binding in bindings.reversed() {
+            types.append(binding.typeAnnotation?.type ?? (binding.initializer == nil ? sharedType : nil))
+            if binding.initializer != nil {
+                sharedType = nil
+            } else if let typeAnnotation = binding.typeAnnotation {
+                sharedType = typeAnnotation.type
             }
         }
-        return nil
+        return types.reversed()
     }
 
     /// Returns whether an accessor block belongs to a stored property.

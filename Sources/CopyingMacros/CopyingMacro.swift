@@ -32,12 +32,7 @@ public struct CopyingMacro: MemberMacro {
             throw CopyingDiagnostic.unsupportedDeclaration.error(at: node)
         }
 
-        let (storedProperties, diagnostics) = StoredProperty.extract(from: declaration)
-
-        // Report every problematic binding in a single compilation.
-        guard diagnostics.isEmpty else {
-            throw DiagnosticsError(diagnostics: diagnostics)
-        }
+        let storedProperties = try StoredProperty.extract(from: declaration)
         guard !storedProperties.isEmpty else {
             throw CopyingDiagnostic.noStoredProperties.error(at: node)
         }
