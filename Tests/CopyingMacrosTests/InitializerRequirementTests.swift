@@ -783,4 +783,64 @@ struct InitializerRequirementTests {
                 """
         )
     }
+
+    @Test("Copying macro warns when an initializer takes the arguments out of order")
+    func copyingMacroWarnsWhenInitializerLabelsAreOutOfOrder() {
+        // Swift matches arguments to parameters in declaration order, so a call passing
+        // `name:` before `age:` cannot resolve to `init(age:name:)` however well the
+        // labels themselves line up.
+        assertMacroExpansionForTesting(
+            """
+            @Copying
+            final class User {
+                let name: String
+                let age: Int
+
+                init(age: Int, name: String) {
+                    self.name = name
+                    self.age = age
+                }
+            }
+            """,
+            expandedSource: """
+                final class User {
+                    let name: String
+                    let age: Int
+
+                    init(age: Int, name: String) {
+                        self.name = name
+                        self.age = age
+                    }
+
+                    /// Creates a copy of this instance with the specified properties modified.
+                    /// - Parameters:
+                    ///   - name: The new value for `name`, or `nil` to keep the current value.
+                    ///   - age: The new value for `age`, or `nil` to keep the current value.
+                    /// - Returns: A new instance with the specified modifications.
+                    func copying(
+                        name: (String)? = nil,
+                        age: (Int)? = nil
+                    ) -> User {
+                        User(
+                            name: name ?? self.name,
+                            age: age ?? self.age
+                        )
+                    }
+                }
+                """,
+            diagnostics: [
+                DiagnosticSpec(
+                    id: MessageID(domain: "CopyingMacros", id: "missingInitializer"),
+                    message:
+                        "@Copying requires 'User' to declare 'init(name:age:)', which the generated 'copying' method calls",
+                    line: 1,
+                    column: 1,
+                    severity: .warning,
+                    fixIts: [FixItSpec(message: "Add 'init(name:age:)'")]
+                )
+            ],
+            macros: testMacros
+        )
+    }
+
 }

@@ -16,6 +16,14 @@ private struct PrivatePerson {
     let name: String
 }
 
+// A type spelling out the access level it would get by default. An explicit
+// `internal` has to be carried over as written, and a modifier can only be spelled
+// out at file scope.
+@Copying
+internal struct InternalPerson {
+    let name: String
+}
+
 // A property wrapper with `init(wrappedValue:)` — the shape the generated `copying`
 // method supports. It normalizes its value so a copy visibly re-runs the wrapper.
 @propertyWrapper
@@ -159,6 +167,14 @@ struct CopyingTests {
         let copiedContainer = container.copying(item: "World")
 
         #expect(copiedContainer.item == "World")
+    }
+
+    @Test("Generated method of a type declared internal explicitly is callable")
+    func internalTypeCompileTest() {
+        let person = InternalPerson(name: "John")
+        let copied = person.copying(name: "Jane")
+
+        #expect(copied.name == "Jane")
     }
 
     @Test("Copying without arguments returns equivalent instance")

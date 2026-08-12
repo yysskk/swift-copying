@@ -139,4 +139,63 @@ struct DiagnosticTests {
             macros: testMacros
         )
     }
+
+    @Test("Copying macro rejects a type whose only members are static or computed")
+    func copyingMacroRejectsTypeWithNoCopyableProperties() {
+        assertMacroExpansionForTesting(
+            """
+            @Copying
+            struct Configuration {
+                static let key: String = "default"
+                var isEmpty: Bool {
+                    true
+                }
+            }
+            """,
+            expandedSource: """
+                struct Configuration {
+                    static let key: String = "default"
+                    var isEmpty: Bool {
+                        true
+                    }
+                }
+                """,
+            diagnostics: [
+                DiagnosticSpec(
+                    id: MessageID(domain: "CopyingMacros", id: "noStoredProperties"),
+                    message: "@Copying requires at least one stored property with an explicit type annotation",
+                    line: 1,
+                    column: 1
+                )
+            ],
+            macros: testMacros
+        )
+    }
+
+    @Test("Copying macro rejects a protocol declaration")
+    func copyingMacroRejectsProtocol() {
+        assertMacroExpansionForTesting(
+            """
+            @Copying
+            protocol Named {
+                var name: String { get }
+            }
+            """,
+            expandedSource: """
+                protocol Named {
+                    var name: String { get }
+                }
+                """,
+            diagnostics: [
+                DiagnosticSpec(
+                    id: MessageID(domain: "CopyingMacros", id: "unsupportedDeclaration"),
+                    message: "@Copying can only be applied to struct, class, or actor declarations",
+                    line: 1,
+                    column: 1
+                )
+            ],
+            macros: testMacros
+        )
+    }
+
 }

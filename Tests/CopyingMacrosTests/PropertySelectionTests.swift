@@ -378,4 +378,88 @@ struct PropertySelectionTests {
             macros: testMacros
         )
     }
+
+    @Test("Copying macro skips a let tuple binding without reporting it")
+    func copyingMacroSkipsLetTuplePatternBinding() {
+        assertMacroExpansionForTesting(
+            """
+            @Copying
+            final class Screen {
+                let (width, height) = (0, 0)
+                var title: String
+
+                init(title: String) {
+                    self.title = title
+                }
+            }
+            """,
+            expandedSource: """
+                final class Screen {
+                    let (width, height) = (0, 0)
+                    var title: String
+
+                    init(title: String) {
+                        self.title = title
+                    }
+
+                    /// Creates a copy of this instance with the specified properties modified.
+                    /// - Parameters:
+                    ///   - title: The new value for `title`, or `nil` to keep the current value.
+                    /// - Returns: A new instance with the specified modifications.
+                    func copying(
+                        title: (String)? = nil
+                    ) -> Screen {
+                        Screen(
+                            title: title ?? self.title
+                        )
+                    }
+                }
+                """,
+            macros: testMacros
+        )
+    }
+
+    @Test("Copying macro skips class type properties")
+    func copyingMacroSkipsClassTypeProperties() {
+        // Spelled as storage so that the `class` modifier is the only reason it is
+        // skipped. Swift rejects a stored `class` property, but the macro sees syntax
+        // alone, and the modifier has to be what stops it either way.
+        assertMacroExpansionForTesting(
+            """
+            @Copying
+            final class Counter {
+                class var maxValue: Int = 100
+                let value: Int
+
+                init(value: Int) {
+                    self.value = value
+                }
+            }
+            """,
+            expandedSource: """
+                final class Counter {
+                    class var maxValue: Int = 100
+                    let value: Int
+
+                    init(value: Int) {
+                        self.value = value
+                    }
+
+                    /// Creates a copy of this instance with the specified properties modified.
+                    /// - Parameters:
+                    ///   - value: The new value for `value`, or `nil` to keep the current value.
+                    /// - Returns: A new instance with the specified modifications.
+                    func copying(
+                        value: (Int)? = nil
+                    ) -> Counter {
+                        Counter(
+                            value: value ?? self.value
+                        )
+                    }
+                }
+                """,
+            macros: testMacros
+        )
+    }
+
 }
