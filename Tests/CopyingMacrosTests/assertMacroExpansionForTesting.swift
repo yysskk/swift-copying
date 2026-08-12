@@ -1,8 +1,13 @@
+import CopyingMacros
 import SwiftSyntax
 import SwiftSyntaxMacroExpansion
 import SwiftSyntaxMacros
 import SwiftSyntaxMacrosGenericTestSupport
 import Testing
+
+let testMacros: [String: Macro.Type] = [
+    "Copying": CopyingMacro.self
+]
 
 func assertMacroExpansionForTesting(
     _ originalSource: String,
