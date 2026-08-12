@@ -224,4 +224,35 @@ struct AccessLevelTests {
             macros: testMacros
         )
     }
+
+    @Test("Copying macro inherits an explicit internal access level")
+    func copyingMacroWithInternalStruct() {
+        assertMacroExpansionForTesting(
+            """
+            @Copying
+            internal struct Person {
+                let name: String
+            }
+            """,
+            expandedSource: """
+                internal struct Person {
+                    let name: String
+
+                    /// Creates a copy of this instance with the specified properties modified.
+                    /// - Parameters:
+                    ///   - name: The new value for `name`, or `nil` to keep the current value.
+                    /// - Returns: A new instance with the specified modifications.
+                    internal func copying(
+                        name: (String)? = nil
+                    ) -> Person {
+                        Person(
+                            name: name ?? self.name
+                        )
+                    }
+                }
+                """,
+            macros: testMacros
+        )
+    }
+
 }
