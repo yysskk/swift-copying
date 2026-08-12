@@ -33,6 +33,7 @@ let package = Package(
                 .product(name: "SwiftCompilerPlugin", package: "swift-syntax"),
                 .product(name: "SwiftDiagnostics", package: "swift-syntax"),
                 .product(name: "SwiftBasicFormat", package: "swift-syntax"),
+                .product(name: "SwiftSyntaxBuilder", package: "swift-syntax"),
             ]
         ),
         .target(name: "Copying", dependencies: ["CopyingMacros"]),
