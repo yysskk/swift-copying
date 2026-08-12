@@ -43,7 +43,7 @@ extension SubclassingHazard {
     /// on the way, since `open` and `final` contradict each other: that keeps the class
     /// visible everywhere it was and takes away only the subclassing that causes the
     /// trouble.
-    func fixIt() -> FixIt {
+    var fixIt: FixIt {
         let modifiers = DeclModifierListSyntax(
             declaration.modifiers.map { modifier in
                 guard modifier.name.tokenKind == .keyword(.open) else {

@@ -14,14 +14,13 @@ struct InitializerRequirement {
     /// them. Their names are the argument labels it uses.
     private let storedProperties: [StoredProperty]
 
+    /// The argument labels the generated call passes, in order.
+    private let argumentLabels: [String]
+
     /// Creates the requirement implied by the properties the copy has to pass on.
     init(storedProperties: [StoredProperty]) {
         self.storedProperties = storedProperties
-    }
-
-    /// The argument labels the generated call passes, in order.
-    private var argumentLabels: [String] {
-        storedProperties.map(\.name)
+        self.argumentLabels = storedProperties.map(\.name)
     }
 
     /// The required initializer spelled the way Swift writes a compound name,
