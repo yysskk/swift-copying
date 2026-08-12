@@ -2,29 +2,24 @@ import SwiftDiagnostics
 
 /// A Fix-It offered alongside a diagnostic from the `@Copying` macro.
 ///
-/// Each case carries a stable ``SwiftDiagnostics/MessageID`` (in the `CopyingMacros`
-/// domain) and the label an editor puts on the button that applies the change.
-enum CopyingFixItMessage: FixItMessage {
-    /// Write the initializer the generated `copying` method calls into the declaration.
-    case insertInitializer(signature: String)
-    /// Mark the class `final`, so no subclass can inherit the generated method.
-    case markFinal(typeName: String)
+/// Each one carries a stable ``SwiftDiagnostics/MessageID`` and the label an editor
+/// puts on the button that applies the change.
+struct CopyingFixItMessage: FixItMessage {
+    let fixItID: MessageID
+    let message: String
 
-    var message: String {
-        switch self {
-        case .insertInitializer(let signature):
-            return "Add '\(signature)'"
-        case .markFinal(let typeName):
-            return "Mark '\(typeName)' as 'final'"
-        }
+    private init(id: String, message: String) {
+        self.fixItID = .copyingMacros(id)
+        self.message = message
     }
 
-    var fixItID: MessageID {
-        switch self {
-        case .insertInitializer:
-            return MessageID(domain: "CopyingMacros", id: "insertInitializer")
-        case .markFinal:
-            return MessageID(domain: "CopyingMacros", id: "markFinal")
-        }
+    /// Write the initializer the generated `copying` method calls into the declaration.
+    static func insertInitializer(signature: String) -> CopyingFixItMessage {
+        CopyingFixItMessage(id: "insertInitializer", message: "Add '\(signature)'")
+    }
+
+    /// Mark the class `final`, so no subclass can inherit the generated method.
+    static func markFinal(typeName: String) -> CopyingFixItMessage {
+        CopyingFixItMessage(id: "markFinal", message: "Mark '\(typeName)' as 'final'")
     }
 }

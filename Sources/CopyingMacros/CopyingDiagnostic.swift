@@ -1,90 +1,99 @@
 import SwiftDiagnostics
 import SwiftSyntax
 
+extension MessageID {
+    /// An identifier in the `CopyingMacros` domain, which every message the macro
+    /// emits — diagnostics and Fix-Its alike — belongs to.
+    static func copyingMacros(_ id: String) -> MessageID {
+        MessageID(domain: "CopyingMacros", id: id)
+    }
+}
+
 /// A diagnostic emitted while expanding the `@Copying` macro.
 ///
-/// Each case carries a stable ``SwiftDiagnostics/MessageID`` (in the
-/// `CopyingMacros` domain) and a user-facing message, and is attached to the most
-/// relevant syntax node so the compiler underlines the exact offending code.
-enum CopyingDiagnostic: DiagnosticMessage {
+/// Each one carries a stable ``SwiftDiagnostics/MessageID``, a severity, and a
+/// user-facing message, and is attached to the most relevant syntax node so the
+/// compiler underlines the exact offending code.
+///
+/// Every problem the macro can detect for certain is an error. The three that turn
+/// on code the macro cannot see are warnings: the two about the initializer,
+/// because one declared in an extension or inherited from a superclass satisfies
+/// the generated call while being invisible here, and the one about a subclassable
+/// class, because a class that nothing subclasses copies itself correctly.
+struct CopyingDiagnostic: DiagnosticMessage {
+    let diagnosticID: MessageID
+    let severity: DiagnosticSeverity
+    let message: String
+
+    private init(id: String, severity: DiagnosticSeverity, message: String) {
+        self.diagnosticID = .copyingMacros(id)
+        self.severity = severity
+        self.message = message
+    }
+
     /// The macro was attached to something other than a struct, class, or actor.
-    case unsupportedDeclaration
+    static let unsupportedDeclaration = CopyingDiagnostic(
+        id: "unsupportedDeclaration",
+        severity: .error,
+        message: "@Copying can only be applied to struct, class, or actor declarations"
+    )
+
     /// The declaration has no stored property that can participate in a copy.
-    case noStoredProperties
+    static let noStoredProperties = CopyingDiagnostic(
+        id: "noStoredProperties",
+        severity: .error,
+        message: "@Copying requires at least one stored property with an explicit type annotation"
+    )
+
     /// A copyable stored property lacks the explicit type annotation the macro
     /// needs to spell out the corresponding `copying` parameter.
-    case missingTypeAnnotation(propertyName: String)
+    static func missingTypeAnnotation(propertyName: String) -> CopyingDiagnostic {
+        CopyingDiagnostic(
+            id: "missingTypeAnnotation",
+            severity: .error,
+            message: "@Copying requires an explicit type annotation for '\(propertyName)'"
+        )
+    }
+
     /// A `var` binds several properties through a tuple pattern, which the macro
     /// cannot copy individually.
-    case tuplePatternBinding
+    static let tuplePatternBinding = CopyingDiagnostic(
+        id: "tuplePatternBinding",
+        severity: .error,
+        message: "@Copying does not support tuple pattern bindings; declare each property separately"
+    )
+
     /// The declaration does not declare an initializer that the generated `copying`
     /// method can call.
-    case missingInitializer(typeName: String, signature: String)
+    static func missingInitializer(typeName: String, signature: String) -> CopyingDiagnostic {
+        CopyingDiagnostic(
+            id: "missingInitializer",
+            severity: .warning,
+            message:
+                "@Copying requires '\(typeName)' to declare '\(signature)', which the generated 'copying' method calls"
+        )
+    }
+
     /// The declaration's initializer takes the copied properties but cannot be called
     /// the way the generated `copying` method calls it.
-    case unusableInitializer(signature: String)
+    static func unusableInitializer(signature: String) -> CopyingDiagnostic {
+        CopyingDiagnostic(
+            id: "unusableInitializer",
+            severity: .warning,
+            message:
+                "@Copying calls '\(signature)' to build the copy, so it cannot be failable ('init?'), throwing, or async"
+        )
+    }
+
     /// The declaration is a `class` that can still be subclassed, so a subclass would
     /// inherit a `copying` that rebuilds only the superclass.
-    case subclassableClass(typeName: String)
-
-    var message: String {
-        switch self {
-        case .unsupportedDeclaration:
-            return "@Copying can only be applied to struct, class, or actor declarations"
-        case .noStoredProperties:
-            return "@Copying requires at least one stored property with an explicit type annotation"
-        case .missingTypeAnnotation(let propertyName):
-            return "@Copying requires an explicit type annotation for '\(propertyName)'"
-        case .tuplePatternBinding:
-            return "@Copying does not support tuple pattern bindings; declare each property separately"
-        case .missingInitializer(let typeName, let signature):
-            return
-                "@Copying requires '\(typeName)' to declare '\(signature)', which the generated 'copying' method calls"
-        case .unusableInitializer(let signature):
-            return
-                "@Copying calls '\(signature)' to build the copy, so it cannot be failable ('init?'), throwing, or async"
-        case .subclassableClass(let typeName):
-            return
+    static func subclassableClass(typeName: String) -> CopyingDiagnostic {
+        CopyingDiagnostic(
+            id: "subclassableClass",
+            severity: .warning,
+            message:
                 "@Copying returns a new '\(typeName)' from 'copying', so a subclass inherits one that discards its own state; mark '\(typeName)' as 'final'"
-        }
-    }
-
-    /// Every problem the macro can detect for certain is an error. The three that turn
-    /// on code the macro cannot see are warnings: the two about the initializer,
-    /// because one declared in an extension or inherited from a superclass satisfies
-    /// the generated call while being invisible here, and the one about a subclassable
-    /// class, because a class that nothing subclasses copies itself correctly.
-    var severity: DiagnosticSeverity {
-        switch self {
-        case .unsupportedDeclaration, .noStoredProperties, .missingTypeAnnotation, .tuplePatternBinding:
-            return .error
-        case .missingInitializer, .unusableInitializer, .subclassableClass:
-            return .warning
-        }
-    }
-
-    var diagnosticID: MessageID {
-        MessageID(domain: "CopyingMacros", id: identifier)
-    }
-
-    /// The stable identifier for this message within the `CopyingMacros` domain.
-    private var identifier: String {
-        switch self {
-        case .unsupportedDeclaration:
-            return "unsupportedDeclaration"
-        case .noStoredProperties:
-            return "noStoredProperties"
-        case .missingTypeAnnotation:
-            return "missingTypeAnnotation"
-        case .tuplePatternBinding:
-            return "tuplePatternBinding"
-        case .missingInitializer:
-            return "missingInitializer"
-        case .unusableInitializer:
-            return "unusableInitializer"
-        case .subclassableClass:
-            return "subclassableClass"
-        }
+        )
     }
 }
 
