@@ -16,7 +16,7 @@ enum CopyingMethodRenderer {
         storedProperties: [StoredProperty]
     ) -> DeclSyntax {
         let fullTypeName = makeFullTypeName(name: typeName, genericParameterClause: genericParameterClause)
-        let accessLevel = makeAccessLevelModifier(modifiers: modifiers)
+        let accessLevel = modifiers.accessLevelForGeneratedMembers
 
         let documentation =
             storedProperties
@@ -48,39 +48,12 @@ enum CopyingMethodRenderer {
             """
     }
 
-    /// Returns the access-level modifier (with a trailing space) to apply to the
-    /// generated method, derived from the type's declaration modifiers.
-    ///
-    /// Returns an empty string when the type has no explicit access-level modifier
-    /// (i.e. the default `internal`). Two levels are adjusted so that the method is
-    /// callable from everywhere the type itself is visible:
-    /// - `open` is mapped to `public` because the generated method is a factory that
-    ///   never needs to be overridden.
-    /// - `private` is mapped to `fileprivate` because a `private` member would be
-    ///   confined to the type declaration itself, while a `private` type remains
-    ///   usable in the rest of the file.
-    static func makeAccessLevelModifier(modifiers: DeclModifierListSyntax) -> String {
-        for modifier in modifiers {
-            guard case .keyword(let keyword) = modifier.name.tokenKind else {
-                continue
-            }
-            switch keyword {
-            case .open:
-                return "public "
-            case .private:
-                return "fileprivate "
-            case .public, .package, .internal, .fileprivate:
-                return "\(modifier.name.text) "
-            default:
-                continue
-            }
-        }
-        return ""
-    }
-
     /// Returns the type's name with its generic parameter names reattached
     /// (e.g. `Pair<K, V>`), or just the name when the type is not generic.
-    static func makeFullTypeName(name: String, genericParameterClause: GenericParameterClauseSyntax?) -> String {
+    private static func makeFullTypeName(
+        name: String,
+        genericParameterClause: GenericParameterClauseSyntax?
+    ) -> String {
         guard let genericParameterClause else {
             return name
         }

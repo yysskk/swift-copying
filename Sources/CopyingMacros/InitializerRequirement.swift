@@ -96,7 +96,7 @@ extension InitializerRequirement {
     /// redeclaration, so that initializer has to be changed rather than joined.
     func fixIt(insertingInto declaration: some DeclGroupSyntax) -> FixIt {
         let memberBlock = declaration.memberBlock
-        let accessLevel = CopyingMethodRenderer.makeAccessLevelModifier(modifiers: declaration.modifiers)
+        let accessLevel = declaration.modifiers.accessLevelForGeneratedMembers
         let parameters = storedProperties.map { "\($0.name): \($0.type)" }.joined(separator: ", ")
 
         // Line the initializer up with the members already there, one indentation step

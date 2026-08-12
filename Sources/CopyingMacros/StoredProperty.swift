@@ -76,7 +76,7 @@ extension StoredProperty {
         // property is not part of an instance's state, and a `lazy` property would
         // require a mutating getter to read from `copying`; a fresh copy recomputes
         // it on demand anyway.
-        guard !variable.modifiers.contains(where: \.isTypeLevelOrLazy) else {
+        guard !variable.modifiers.contains(anyOf: .static, .class, .lazy) else {
             return
         }
 
@@ -173,19 +173,6 @@ extension StoredProperty {
                     return false
                 }
             }
-        }
-    }
-}
-
-extension DeclModifierSyntax {
-    /// Whether this modifier makes a property type-level (`static`/`class`) or `lazy`,
-    /// in which case it is excluded from copying.
-    fileprivate var isTypeLevelOrLazy: Bool {
-        switch name.tokenKind {
-        case .keyword(.static), .keyword(.class), .keyword(.lazy):
-            return true
-        default:
-            return false
         }
     }
 }
