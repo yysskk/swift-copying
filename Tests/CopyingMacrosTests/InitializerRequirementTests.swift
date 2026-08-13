@@ -688,6 +688,151 @@ struct InitializerRequirementTests {
         )
     }
 
+    @Test("Copying macro accepts a convenience initializer")
+    func copyingMacroAcceptsConvenienceInitializer() {
+        assertMacroExpansionForTesting(
+            """
+            @Copying
+            final class User {
+                let id: Int
+                var username: String
+
+                init(id: Int) {
+                    self.id = id
+                    self.username = ""
+                }
+
+                convenience init(id: Int, username: String) {
+                    self.init(id: id)
+                    self.username = username
+                }
+            }
+            """,
+            // The call reaches a convenience initializer as readily as a designated
+            // one, so how it is written does not matter to the check.
+            expandedSource: """
+                final class User {
+                    let id: Int
+                    var username: String
+
+                    init(id: Int) {
+                        self.id = id
+                        self.username = ""
+                    }
+
+                    convenience init(id: Int, username: String) {
+                        self.init(id: id)
+                        self.username = username
+                    }
+
+                    /// Creates a copy of this instance with the specified properties modified.
+                    /// - Parameters:
+                    ///   - id: The new value for `id`, or `nil` to keep the current value.
+                    ///   - username: The new value for `username`, or `nil` to keep the current value.
+                    /// - Returns: A new instance with the specified modifications.
+                    func copying(
+                        id: (Int)? = nil,
+                        username: (String)? = nil
+                    ) -> User {
+                        User(
+                            id: id ?? self.id,
+                            username: username ?? self.username
+                        )
+                    }
+                }
+                """,
+            macros: testMacros
+        )
+    }
+
+    @Test("Copying macro accepts an initializer with a separate internal parameter name")
+    func copyingMacroAcceptsInitializerWithInternalParameterName() {
+        assertMacroExpansionForTesting(
+            """
+            @Copying
+            final class Box {
+                let id: Int
+
+                init(id ident: Int) {
+                    self.id = ident
+                }
+            }
+            """,
+            // Only the label a caller writes matters; the name the body uses is the
+            // initializer's own business.
+            expandedSource: """
+                final class Box {
+                    let id: Int
+
+                    init(id ident: Int) {
+                        self.id = ident
+                    }
+
+                    /// Creates a copy of this instance with the specified properties modified.
+                    /// - Parameters:
+                    ///   - id: The new value for `id`, or `nil` to keep the current value.
+                    /// - Returns: A new instance with the specified modifications.
+                    func copying(
+                        id: (Int)? = nil
+                    ) -> Box {
+                        Box(
+                            id: id ?? self.id
+                        )
+                    }
+                }
+                """,
+            macros: testMacros
+        )
+    }
+
+    @Test("Copying macro warns when the initializer is async and throwing")
+    func copyingMacroWarnsWhenInitializerIsAsyncThrows() {
+        assertMacroExpansionForTesting(
+            """
+            @Copying
+            final class User {
+                let id: Int
+
+                init(id: Int) async throws {
+                    self.id = id
+                }
+            }
+            """,
+            expandedSource: """
+                final class User {
+                    let id: Int
+
+                    init(id: Int) async throws {
+                        self.id = id
+                    }
+
+                    /// Creates a copy of this instance with the specified properties modified.
+                    /// - Parameters:
+                    ///   - id: The new value for `id`, or `nil` to keep the current value.
+                    /// - Returns: A new instance with the specified modifications.
+                    func copying(
+                        id: (Int)? = nil
+                    ) -> User {
+                        User(
+                            id: id ?? self.id
+                        )
+                    }
+                }
+                """,
+            diagnostics: [
+                DiagnosticSpec(
+                    id: MessageID(domain: "CopyingMacros", id: "unusableInitializer"),
+                    message:
+                        "@Copying calls 'init(id:)' to build the copy, so it cannot be failable ('init?'), throwing, or async",
+                    line: 5,
+                    column: 5,
+                    severity: .warning
+                )
+            ],
+            macros: testMacros
+        )
+    }
+
     @Test("Copying macro warns when the initializer is async")
     func copyingMacroWarnsWhenInitializerIsAsync() {
         assertMacroExpansionForTesting(
@@ -1038,6 +1183,61 @@ struct InitializerRequirementTests {
                     init(value: Int) {
                         self.value = value
                     }
+                }
+                """
+        )
+    }
+
+    @Test("Copying macro Fix-It initializer follows tab indentation")
+    func copyingMacroFixItFollowsTabIndentation() {
+        assertMacroExpansionForTesting(
+            """
+            @Copying
+            final class User {
+            \tvar id: Int = 0
+            }
+            """,
+            // The expansion itself is laid out by the compiler, which indents it with
+            // the width it is configured for; the Fix-It below is the macro's own
+            // work, and follows the file's tabs.
+            expandedSource: """
+                final class User {
+                \tvar id: Int = 0
+
+                    /// Creates a copy of this instance with the specified properties modified.
+                    /// - Parameters:
+                    ///   - id: The new value for `id`, or `nil` to keep the current value.
+                    /// - Returns: A new instance with the specified modifications.
+                    func copying(
+                        id: (Int)? = nil
+                    ) -> User {
+                        User(
+                            id: id ?? self.id
+                        )
+                    }
+                }
+                """,
+            diagnostics: [
+                DiagnosticSpec(
+                    id: MessageID(domain: "CopyingMacros", id: "missingInitializer"),
+                    message:
+                        "@Copying requires 'User' to declare 'init(id:)', which the generated 'copying' method calls",
+                    line: 1,
+                    column: 1,
+                    severity: .warning,
+                    fixIts: [FixItSpec(message: "Add 'init(id:)'")]
+                )
+            ],
+            macros: testMacros,
+            applyFixIts: ["Add 'init(id:)'"],
+            fixedSource: """
+                @Copying
+                final class User {
+                \tvar id: Int = 0
+
+                \tinit(id: Int) {
+                \t\tself.id = id
+                \t}
                 }
                 """
         )

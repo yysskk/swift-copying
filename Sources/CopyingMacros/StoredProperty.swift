@@ -39,8 +39,8 @@ extension StoredProperty {
     ///
     /// Members that cannot be copied are skipped: type-level (`static`/`class`) and
     /// `lazy` properties, computed and coroutine-accessor properties, and `let`
-    /// constants with an initial value (which are fixed and excluded from the
-    /// memberwise initializer).
+    /// constants with an initial value (which the memberwise initializer excludes,
+    /// leaving a copy no way to be given one).
     ///
     /// Two problems are reported as diagnostics rather than silently skipped,
     /// because doing so would corrupt copies:
@@ -195,8 +195,10 @@ extension StoredProperty {
             return .notCopyable
         }
 
-        // A `let` with an initial value can never hold a different value and is
-        // excluded from the memberwise initializer, so it cannot be copied.
+        // A `let` with an initial value is excluded from the memberwise initializer,
+        // so a copy cannot be handed one. The new instance runs the initial value
+        // expression itself instead, which for anything but a literal — `UUID()`,
+        // `Date()` — makes it a fresh value rather than the original's.
         if isLet, binding.initializer != nil {
             return .notCopyable
         }
