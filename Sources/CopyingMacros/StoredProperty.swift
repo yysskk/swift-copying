@@ -57,20 +57,24 @@ extension StoredProperty {
     /// - A property a copy would carry that is declared inside `#if`. Which
     ///   properties such a directive contributes depends on the build configuration,
     ///   which a macro cannot know — see `conditionalDiagnostics(in:)`.
+    /// - A property the generated code cannot express: one whose type expands a
+    ///   parameter pack or hides behind `some`, and one named after the type itself.
+    ///   See `outcome(of:declaredType:isLet:accessLevel:typeName:)`.
     ///
     /// - Throws: A ``SwiftDiagnostics/DiagnosticsError`` carrying every offending
     ///   binding, so a single compilation reports them all at once.
     static func extract(from declaration: some DeclGroupSyntax) throws -> [StoredProperty] {
         var properties: [StoredProperty] = []
         var diagnostics: [Diagnostic] = []
+        let typeName = declaration.asProtocol(NamedDeclSyntax.self).map { $0.name.identifier?.name ?? $0.name.text }
 
         for member in declaration.memberBlock.members {
             if let ifConfig = member.decl.as(IfConfigDeclSyntax.self) {
-                diagnostics.append(contentsOf: conditionalDiagnostics(in: ifConfig))
+                diagnostics.append(contentsOf: conditionalDiagnostics(in: ifConfig, typeName: typeName))
                 continue
             }
 
-            for (_, outcome) in classifiedBindings(of: member) {
+            for (_, outcome) in classifiedBindings(of: member, typeName: typeName) {
                 switch outcome {
                 case .copyable(let property):
                     properties.append(property)
@@ -97,9 +101,12 @@ extension StoredProperty {
     /// or, when the initializer defaults that parameter, silently resets the property
     /// on every copy. Members a copy never carries anyway, such as a computed or
     /// `static` one, stay silently skipped exactly as they are outside `#if`.
-    private static func conditionalDiagnostics(in ifConfig: IfConfigDeclSyntax) -> [Diagnostic] {
+    private static func conditionalDiagnostics(
+        in ifConfig: IfConfigDeclSyntax,
+        typeName: String?
+    ) -> [Diagnostic] {
         ifConfig.conditionalMembers
-            .flatMap(classifiedBindings(of:))
+            .flatMap { classifiedBindings(of: $0, typeName: typeName) }
             .filter { _, outcome in outcome.concernsACopy }
             .map { binding, _ in CopyingDiagnostic.conditionalStoredProperty.diagnostic(at: binding) }
     }
@@ -108,7 +115,8 @@ extension StoredProperty {
     /// binding itself, or nothing at all when the member declares no property a copy
     /// could carry.
     private static func classifiedBindings(
-        of member: MemberBlockItemSyntax
+        of member: MemberBlockItemSyntax,
+        typeName: String?
     ) -> [(binding: PatternBindingSyntax, outcome: BindingOutcome)] {
         // Skip type-level (`static`/`class`) and `lazy` properties. A `static`/`class`
         // property is not part of an instance's state, and a `lazy` property would
@@ -125,7 +133,14 @@ extension StoredProperty {
         let accessLevel = AccessLevel(ofPropertyWith: variable.modifiers)
         let isLet = variable.bindingSpecifier.tokenKind == .keyword(.let)
         return zip(variable.bindings, declaredTypes(in: variable.bindings)).map { binding, declaredType in
-            (binding, outcome(of: binding, declaredType: declaredType, isLet: isLet, accessLevel: accessLevel))
+            let outcome = outcome(
+                of: binding,
+                declaredType: declaredType,
+                isLet: isLet,
+                accessLevel: accessLevel,
+                typeName: typeName
+            )
+            return (binding, outcome)
         }
     }
 
@@ -151,13 +166,14 @@ extension StoredProperty {
     }
 
     /// Classifies one binding of a `var`/`let` declaration, given the type it spells
-    /// out (see `declaredTypes(in:)`), whether the declaration binds constants, and
-    /// the level the declaration can be read at.
+    /// out (see `declaredTypes(in:)`), whether the declaration binds constants, the
+    /// level the declaration can be read at, and the name of the type it belongs to.
     private static func outcome(
         of binding: PatternBindingSyntax,
         declaredType: TypeSyntax?,
         isLet: Bool,
-        accessLevel: AccessLevel
+        accessLevel: AccessLevel,
+        typeName: String?
     ) -> BindingOutcome {
         // Computed and coroutine-accessor properties are not stored.
         if let accessorBlock = binding.accessorBlock, !isStored(accessorBlock) {
@@ -185,17 +201,37 @@ extension StoredProperty {
             return .notCopyable
         }
 
+        let propertyName = pattern.identifier.identifier?.name ?? pattern.identifier.text
+
         guard let declaredType else {
-            let propertyName = pattern.identifier.text
             return .problem(CopyingDiagnostic.missingTypeAnnotation(propertyName: propertyName).diagnostic(at: binding))
+        }
+
+        // The generated method takes a parameter named after the property, and the
+        // call that builds the copy sits in its body, so a property named after the
+        // type shadows the type exactly where the call needs it.
+        if let typeName, propertyName == typeName {
+            return .problem(
+                CopyingDiagnostic
+                    .propertyShadowsTypeName(propertyName: propertyName, typeName: typeName)
+                    .diagnostic(at: binding)
+            )
         }
 
         // A value whose type expands a parameter pack, such as `(repeat each T)`,
         // cannot be passed to an initializer, which is how a copy is built.
         if expandsAParameterPack(declaredType) {
-            let propertyName = pattern.identifier.text
             return .problem(
                 CopyingDiagnostic.packExpansionPropertyType(propertyName: propertyName).diagnostic(at: declaredType)
+            )
+        }
+
+        // An opaque type names one type at the property and another in the parameter:
+        // `some P` in parameter position declares a fresh generic parameter the caller
+        // chooses (SE-0341), which is not the type the property holds.
+        if hidesAnOpaqueType(declaredType) {
+            return .problem(
+                CopyingDiagnostic.opaquePropertyType(propertyName: propertyName).diagnostic(at: declaredType)
             )
         }
         return .copyable(
@@ -216,6 +252,14 @@ extension StoredProperty {
     /// loop everywhere else in the language, so in a type it can only be this.
     private static func expandsAParameterPack(_ type: TypeSyntax) -> Bool {
         type.tokens(viewMode: .sourceAccurate).contains { $0.tokenKind == .keyword(.repeat) }
+    }
+
+    /// Whether `type` hides an opaque type anywhere within it, as `some P` does.
+    ///
+    /// `any P` is a type in its own right and copies like any other; only `some` names
+    /// a different type in parameter position than it does in a property's.
+    private static func hidesAnOpaqueType(_ type: TypeSyntax) -> Bool {
+        type.tokens(viewMode: .sourceAccurate).contains { $0.tokenKind == .keyword(.some) }
     }
 
     /// The type each binding of a declaration spells out, in order, with `nil` where

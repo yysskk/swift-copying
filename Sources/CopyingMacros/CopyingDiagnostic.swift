@@ -63,6 +63,34 @@ struct CopyingDiagnostic: DiagnosticMessage {
         message: "@Copying does not support tuple pattern bindings; declare each property separately"
     )
 
+    /// A copyable property is named after the type it belongs to, which the generated
+    /// call needs by name where the property's parameter shadows it.
+    ///
+    /// Building the copy with `Self(…)` instead would sidestep the shadowing, but
+    /// `Self` in a `class` resolves dynamically and so requires a `required`
+    /// initializer — which the macro cannot ask a non-final class for, having just
+    /// advised it to be `final`. Renaming the property is the one change that leaves
+    /// every supported declaration working.
+    static func propertyShadowsTypeName(propertyName: String, typeName: String) -> CopyingDiagnostic {
+        CopyingDiagnostic(
+            id: "propertyShadowsTypeName",
+            severity: .error,
+            message:
+                "@Copying cannot copy '\(propertyName)': the parameter it takes would shadow '\(typeName)' in the call that builds the copy; rename the property"
+        )
+    }
+
+    /// A copyable property's type is opaque, which names one type at the property and
+    /// another in the parameter the generated method takes.
+    static func opaquePropertyType(propertyName: String) -> CopyingDiagnostic {
+        CopyingDiagnostic(
+            id: "opaquePropertyType",
+            severity: .error,
+            message:
+                "@Copying cannot copy '\(propertyName)': 'some' in the parameter it takes declares a new opaque type rather than the property's; declare the property with a concrete or 'any' type"
+        )
+    }
+
     /// A copyable property's type expands a parameter pack, which the generated call
     /// cannot pass on.
     ///

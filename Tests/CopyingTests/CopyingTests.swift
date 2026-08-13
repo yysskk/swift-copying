@@ -196,6 +196,21 @@ struct CopyingTests {
         #expect(copiedPair.value == 456)
     }
 
+    @Test("Generated code for a noncopyable struct compiles and works correctly")
+    func noncopyableStructCompileTest() {
+        @Copying
+        struct Buffer: ~Copyable {
+            var id: Int
+            var label: String
+        }
+
+        let buffer = Buffer(id: 1, label: "a")
+        let copied = buffer.copying(label: "b")
+
+        #expect(copied.id == 1)
+        #expect(copied.label == "b")
+    }
+
     @Test("Generated code for an escaped property name compiles and works correctly")
     func escapedPropertyNameCompileTest() {
         @Copying

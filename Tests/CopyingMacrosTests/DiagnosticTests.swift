@@ -106,6 +106,104 @@ struct DiagnosticTests {
         )
     }
 
+    @Test("Copying macro rejects a property named after its type")
+    func copyingMacroRejectsPropertyNamedAfterItsType() {
+        assertMacroExpansionForTesting(
+            """
+            @Copying
+            struct Money {
+                let Money: Int
+                let currency: String
+            }
+            """,
+            // The call that builds the copy reads `Money(` as the parameter, not the
+            // type: "cannot call value of non-function type 'Int?'".
+            expandedSource: """
+                struct Money {
+                    let Money: Int
+                    let currency: String
+                }
+                """,
+            diagnostics: [
+                DiagnosticSpec(
+                    id: MessageID(domain: "CopyingMacros", id: "propertyShadowsTypeName"),
+                    message:
+                        "@Copying cannot copy 'Money': the parameter it takes would shadow 'Money' in the call that builds the copy; rename the property",
+                    line: 3,
+                    column: 9
+                )
+            ],
+            macros: testMacros
+        )
+    }
+
+    @Test("Copying macro rejects an escaped property named after its type")
+    func copyingMacroRejectsEscapedPropertyNamedAfterItsType() {
+        assertMacroExpansionForTesting(
+            """
+            @Copying
+            struct `default` {
+                let `default`: Int
+            }
+            """,
+            // Backticks escape an identifier rather than being part of it, so the two
+            // names are the same one however each is spelled.
+            expandedSource: """
+                struct `default` {
+                    let `default`: Int
+                }
+                """,
+            diagnostics: [
+                DiagnosticSpec(
+                    id: MessageID(domain: "CopyingMacros", id: "propertyShadowsTypeName"),
+                    message:
+                        "@Copying cannot copy 'default': the parameter it takes would shadow 'default' in the call that builds the copy; rename the property",
+                    line: 3,
+                    column: 9
+                )
+            ],
+            macros: testMacros
+        )
+    }
+
+    @Test("Copying macro rejects an opaque property type")
+    func copyingMacroRejectsOpaquePropertyType() {
+        assertMacroExpansionForTesting(
+            """
+            @Copying
+            struct Provider {
+                var single: some Equatable = 0
+                var nested: [some Equatable] = [1]
+            }
+            """,
+            // `some P` in parameter position declares a fresh generic parameter the
+            // caller chooses, which is not the type the property holds.
+            expandedSource: """
+                struct Provider {
+                    var single: some Equatable = 0
+                    var nested: [some Equatable] = [1]
+                }
+                """,
+            diagnostics: [
+                DiagnosticSpec(
+                    id: MessageID(domain: "CopyingMacros", id: "opaquePropertyType"),
+                    message:
+                        "@Copying cannot copy 'single': 'some' in the parameter it takes declares a new opaque type rather than the property's; declare the property with a concrete or 'any' type",
+                    line: 3,
+                    column: 17
+                ),
+                DiagnosticSpec(
+                    id: MessageID(domain: "CopyingMacros", id: "opaquePropertyType"),
+                    message:
+                        "@Copying cannot copy 'nested': 'some' in the parameter it takes declares a new opaque type rather than the property's; declare the property with a concrete or 'any' type",
+                    line: 4,
+                    column: 17
+                ),
+            ],
+            macros: testMacros
+        )
+    }
+
     @Test("Copying macro rejects a property whose type expands a parameter pack")
     func copyingMacroRejectsPackExpansionPropertyType() {
         assertMacroExpansionForTesting(
