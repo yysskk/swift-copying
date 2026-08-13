@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-08-13
+
 ### Added
 
 - An error on a property with an `init` accessor. Such a property is computed and was skipped as one, but it stands in for the storage it initializes in the memberwise initializer, so the generated call passed that storage and left the property out — "extra argument" and "missing argument" at once, inside generated code. Copying such a type means routing through the accessor, which only its `@storageRestrictions` describes, so it is reported instead. Macros that generate `init` accessors, `@Observable` among them, are unaffected: each macro sees the declaration as written rather than what another expands it into.
@@ -80,7 +82,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Initial release: the `@Copying` macro, which generates a `copying` method for `struct` and `class` types.
 
-[Unreleased]: https://github.com/yysskk/swift-copying/compare/1.4.0...HEAD
+[Unreleased]: https://github.com/yysskk/swift-copying/compare/1.5.0...HEAD
+[1.5.0]: https://github.com/yysskk/swift-copying/compare/1.4.0...1.5.0
 [1.4.0]: https://github.com/yysskk/swift-copying/compare/1.3.0...1.4.0
 [1.3.0]: https://github.com/yysskk/swift-copying/compare/1.2.0...1.3.0
 [1.2.0]: https://github.com/yysskk/swift-copying/compare/1.1.0...1.2.0
