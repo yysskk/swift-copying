@@ -86,16 +86,15 @@ extension InitializerRequirement {
     ///
     /// The initializer is appended to the member block, takes one parameter per copied
     /// property, and assigns each to its property — the memberwise initializer a
-    /// `struct` would have been given. It carries the same access level as the
-    /// generated method, so both are usable wherever the type is.
+    /// `struct` would have been given. It carries `accessLevel`, the level of the
+    /// generated method, so the method can call it wherever the method is available.
     ///
     /// This suits ``Shortfall/noInitializer`` only. Offering it for
     /// ``Shortfall/unusableInitializer(_:)`` would suggest code that does not build:
     /// Swift rejects a plain overload of a failable or throwing initializer as a
     /// redeclaration, so that initializer has to be changed rather than joined.
-    func fixIt(insertingInto declaration: some DeclGroupSyntax) -> FixIt {
+    func fixIt(insertingInto declaration: some DeclGroupSyntax, accessLevel: AccessLevel) -> FixIt {
         let memberBlock = declaration.memberBlock
-        let accessLevel = declaration.modifiers.accessLevelForGeneratedMembers
         let parameters = storedProperties.map { "\($0.name): \($0.type)" }.joined(separator: ", ")
 
         // Line the initializer up with the members already there, one indentation step
@@ -113,7 +112,7 @@ extension InitializerRequirement {
         let bodyIndentation = memberIndentation + step
 
         let lines =
-            ["\(accessLevel)init(\(parameters)) {"]
+            ["\(accessLevel.rendered)init(\(parameters)) {"]
             + storedProperties.map { "\(bodyIndentation)self.\($0.name) = \($0.name)" }
             + ["\(memberIndentation)}"]
         // The first line carries no indentation of its own; the member's leading trivia
