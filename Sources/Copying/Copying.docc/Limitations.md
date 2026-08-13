@@ -13,8 +13,33 @@ These properties are left out of `copying` without any diagnostic, because copyi
 - **Type properties** declared with `static` (or `class`), which are not part of an instance's state.
 - **Computed properties**, whether written as a single expression, an explicit `get`, or a `get`/`set` pair. Properties that only observe changes with `willSet`/`didSet` are still stored and *are* included.
 - **`lazy` properties.** Reading one inside `copying` would require a mutating getter on a `struct`, and a fresh copy recomputes the value on demand anyway.
-- **`let` constants with an initial value**, such as `let maxValue: Int = 100`. Their value is fixed and the memberwise initializer excludes them.
+- **`let` constants with an initial value**, such as `let maxValue: Int = 100`. The memberwise initializer excludes them, so a copy has no way to be handed one — see below.
 - **Immutable tuple bindings**, such as `let (x, y) = (0, 0)` (allowed in a `class` or `actor`). They are constants, so there is nothing to vary. The mutable `var` form is rejected instead — see below.
+
+A `let` with an initial value deserves a second look, because skipping it means the *value* is produced again rather than carried over. A copy is a new instance, so its initial value expression runs for the copy too:
+
+```swift
+@Copying
+struct Record {
+    let id: UUID = UUID()
+    var name: String
+}
+
+let record = Record(name: "first")
+record.copying(name: "second").id   // a different UUID
+```
+
+For a literal such as `100` that comes to the same thing. For an expression that yields a new value each time — `UUID()`, `Date()`, a counter — the copy does not share the original's. When the value has to survive a copy, drop the initial value so the property takes part in copying, and supply the default through an initializer instead:
+
+```swift
+@Copying
+struct Record {
+    let id: UUID
+    var name: String
+
+    init(id: UUID = UUID(), name: String) { … }
+}
+```
 
 ### Declarations that are rejected
 

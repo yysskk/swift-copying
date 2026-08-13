@@ -181,7 +181,7 @@ The macro generates a parameter only for stored properties that can take part in
 - `static` (and `class`) type properties
 - Computed properties (`willSet`/`didSet`-only properties are still stored and are included)
 - `lazy` properties
-- `let` constants with an initial value, e.g. `let maxValue: Int = 100`
+- `let` constants with an initial value, e.g. `let maxValue: Int = 100` (a copy runs that expression again rather than carrying the value over, so `let id: UUID = UUID()` gives each copy a fresh `id` — see [Limitations](https://yysskk.github.io/swift-copying/documentation/copying/limitations))
 - Immutable tuple bindings, e.g. `let (x, y) = (0, 0)`
 
 **Rejected with a compile-time error:**

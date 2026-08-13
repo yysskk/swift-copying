@@ -56,6 +56,32 @@ struct DiagnosticTests {
         )
     }
 
+    @Test("Copying macro rejects an extension")
+    func copyingMacroRejectsExtension() {
+        assertMacroExpansionForTesting(
+            """
+            @Copying
+            extension Point {
+            }
+            """,
+            // An extension declares no stored property to copy, and the type it
+            // extends is not the macro's to add members to.
+            expandedSource: """
+                extension Point {
+                }
+                """,
+            diagnostics: [
+                DiagnosticSpec(
+                    id: MessageID(domain: "CopyingMacros", id: "unsupportedDeclaration"),
+                    message: "@Copying can only be applied to struct, class, or actor declarations",
+                    line: 1,
+                    column: 1
+                )
+            ],
+            macros: testMacros
+        )
+    }
+
     @Test("Copying macro rejects a type without stored properties")
     func copyingMacroRejectsTypeWithoutStoredProperties() {
         assertMacroExpansionForTesting(
