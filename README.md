@@ -190,6 +190,7 @@ The macro generates a parameter only for stored properties that can take part in
 - A `var` bound through a tuple pattern, e.g. `var (x, y) = (0, 0)`
 - A type with no copyable stored properties
 - Applying `@Copying` to anything other than a `struct`, `class`, or `actor`
+- A copyable property declared inside `#if`, e.g. a `var inset: CGFloat` under `#if os(iOS)` (a macro cannot know which branch a build takes — declare the property unconditionally and vary its value instead)
 
 **Warned about, with the method still generated:**
 

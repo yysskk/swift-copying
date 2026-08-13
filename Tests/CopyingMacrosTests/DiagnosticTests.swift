@@ -106,6 +106,98 @@ struct DiagnosticTests {
         )
     }
 
+    @Test("Copying macro rejects a stored property declared inside #if")
+    func copyingMacroRejectsConditionalStoredProperty() {
+        assertMacroExpansionForTesting(
+            """
+            @Copying
+            struct Settings {
+                var name: String
+                #if DEBUG
+                var verbose: Bool
+                #endif
+            }
+            """,
+            expandedSource: """
+                struct Settings {
+                    var name: String
+                    #if DEBUG
+                    var verbose: Bool
+                    #endif
+                }
+                """,
+            diagnostics: [
+                DiagnosticSpec(
+                    id: MessageID(domain: "CopyingMacros", id: "conditionalStoredProperty"),
+                    message:
+                        "@Copying does not support a stored property declared inside '#if'; declare the property unconditionally",
+                    line: 5,
+                    column: 9
+                )
+            ],
+            macros: testMacros
+        )
+    }
+
+    @Test("Copying macro rejects a conditional stored property in every clause")
+    func copyingMacroRejectsConditionalStoredPropertiesInEveryClause() {
+        assertMacroExpansionForTesting(
+            """
+            @Copying
+            struct Layout {
+                var title: String
+                #if os(iOS)
+                var inset: Double
+                #else
+                var margin: Double
+                #if DEBUG
+                var trace: Bool
+                #endif
+                #endif
+            }
+            """,
+            // `#elseif`, `#else`, and a nested directive contribute properties on their
+            // own configurations, so each is reported.
+            expandedSource: """
+                struct Layout {
+                    var title: String
+                    #if os(iOS)
+                    var inset: Double
+                    #else
+                    var margin: Double
+                    #if DEBUG
+                    var trace: Bool
+                    #endif
+                    #endif
+                }
+                """,
+            diagnostics: [
+                DiagnosticSpec(
+                    id: MessageID(domain: "CopyingMacros", id: "conditionalStoredProperty"),
+                    message:
+                        "@Copying does not support a stored property declared inside '#if'; declare the property unconditionally",
+                    line: 5,
+                    column: 9
+                ),
+                DiagnosticSpec(
+                    id: MessageID(domain: "CopyingMacros", id: "conditionalStoredProperty"),
+                    message:
+                        "@Copying does not support a stored property declared inside '#if'; declare the property unconditionally",
+                    line: 7,
+                    column: 9
+                ),
+                DiagnosticSpec(
+                    id: MessageID(domain: "CopyingMacros", id: "conditionalStoredProperty"),
+                    message:
+                        "@Copying does not support a stored property declared inside '#if'; declare the property unconditionally",
+                    line: 9,
+                    column: 9
+                ),
+            ],
+            macros: testMacros
+        )
+    }
+
     @Test("Copying macro reports every offending property in one expansion")
     func copyingMacroReportsMultipleViolationsTogether() {
         assertMacroExpansionForTesting(
@@ -114,12 +206,18 @@ struct DiagnosticTests {
             struct Broken {
                 var count = 0
                 var (x, y) = (0, 0)
+                #if DEBUG
+                var verbose: Bool
+                #endif
             }
             """,
             expandedSource: """
                 struct Broken {
                     var count = 0
                     var (x, y) = (0, 0)
+                    #if DEBUG
+                    var verbose: Bool
+                    #endif
                 }
                 """,
             diagnostics: [
@@ -133,6 +231,13 @@ struct DiagnosticTests {
                     id: MessageID(domain: "CopyingMacros", id: "tuplePatternBinding"),
                     message: "@Copying does not support tuple pattern bindings; declare each property separately",
                     line: 4,
+                    column: 9
+                ),
+                DiagnosticSpec(
+                    id: MessageID(domain: "CopyingMacros", id: "conditionalStoredProperty"),
+                    message:
+                        "@Copying does not support a stored property declared inside '#if'; declare the property unconditionally",
+                    line: 6,
                     column: 9
                 ),
             ],

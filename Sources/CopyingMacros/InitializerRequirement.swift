@@ -42,7 +42,21 @@ struct InitializerRequirement {
     /// initializer added in an extension or inherited from a superclass also satisfies
     /// the call, so ``Shortfall/noInitializer`` means "none is visible here" rather than
     /// "the copy cannot be built" — hence the warning in ``CopyingDiagnostic``.
+    ///
+    /// An initializer declared inside `#if` is the same kind of blind spot, since a
+    /// macro cannot know which branch a build takes, so one silences the check
+    /// entirely: warning would be wrong wherever that branch is active, and its
+    /// Fix-It would write a second initializer with the same signature.
     func shortfall(of declaration: some DeclGroupSyntax) -> Shortfall? {
+        let declaresConditionalInitializer =
+            declaration.memberBlock.members
+            .compactMap { $0.decl.as(IfConfigDeclSyntax.self) }
+            .flatMap(\.conditionalMembers)
+            .contains { $0.decl.is(InitializerDeclSyntax.self) }
+        guard !declaresConditionalInitializer else {
+            return nil
+        }
+
         let initializers = declaration.memberBlock.members.compactMap {
             $0.decl.as(InitializerDeclSyntax.self)
         }
