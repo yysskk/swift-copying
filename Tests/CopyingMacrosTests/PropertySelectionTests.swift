@@ -125,6 +125,40 @@ struct PropertySelectionTests {
         )
     }
 
+    @Test("Copying macro allows a skipped property named after its type")
+    func copyingMacroAllowsNonCopyablePropertyNamedAfterItsType() {
+        assertMacroExpansionForTesting(
+            """
+            @Copying
+            struct Money {
+                static let Money: Int = 0
+                let amount: Int
+            }
+            """,
+            // A property the copy never carries takes no parameter, so it shadows
+            // nothing.
+            expandedSource: """
+                struct Money {
+                    static let Money: Int = 0
+                    let amount: Int
+
+                    /// Creates a copy of this instance with the specified properties modified.
+                    /// - Parameters:
+                    ///   - amount: The new value for `amount`, or `nil` to keep the current value.
+                    /// - Returns: A new instance with the specified modifications.
+                    func copying(
+                        amount: (Int)? = nil
+                    ) -> Money {
+                        Money(
+                            amount: amount ?? self.amount
+                        )
+                    }
+                }
+                """,
+            macros: testMacros
+        )
+    }
+
     @Test("Copying macro skips members inside #if that a copy never carries")
     func copyingMacroSkipsNonCopyableConditionalMembers() {
         assertMacroExpansionForTesting(

@@ -24,6 +24,8 @@ The macro emits an error, so the mistake surfaces at compile time instead of cor
 - **A `var` bound through a tuple pattern**, such as `var (x, y) = (0, 0)`. Declare each property on its own line so the macro can address them individually.
 - **A type with no copyable stored properties at all.** `@Copying` needs at least one property it can vary.
 - **Applying `@Copying` to anything other than a `struct`, `class`, or `actor`.**
+- **A copyable property named after the type it belongs to**, such as a `Money` in `struct Money`. The generated method takes a parameter of that name, and the call that builds the copy sits in its body, so `Money(Money: …)` reads `Money` as the parameter rather than the type. Building the copy with `Self(…)` would sidestep it, but `Self` in a `class` resolves dynamically and so needs a `required` initializer, which the macro cannot ask a non-`final` class for having just advised it to be `final`. Renaming the property is the change that leaves every supported declaration working.
+- **A copyable property with an opaque type**, such as `var value: some Equatable`. Written in a parameter, `some P` declares a fresh generic parameter for the caller to choose (SE-0341) rather than naming the property's own type, so the copy would not type-check. An `any P` existential is a type in its own right and copies like any other.
 - **A copyable property whose type expands a parameter pack**, such as `let values: (repeat each T)`. The type itself may be generic over a pack — `struct Bundle<each T>` is copied like any other generic type, and the generated method returns `Bundle<repeat each T>` — but a copy is built by passing each property to an initializer, and Swift does not compile such a call for a value that expands a pack, whether the initializer is memberwise or written by hand. A type that stores one needs a `copying` written by hand.
 - **A copyable property declared inside `#if`**, such as a `var inset: CGFloat` under `#if os(iOS)`. A macro is handed the declaration before the directives are resolved and cannot know which branch a build takes, so no single expansion is right for all of them. Declare the property unconditionally and vary its *value* by configuration instead. A member inside `#if` that a copy never carries anyway — a computed, `static`, or `lazy` property, or a `let` with an initial value — is skipped as silently as it is outside one.
 
@@ -290,3 +292,17 @@ final class Node {
 ```
 
 The copy holds `next` weakly too, so it does not keep the referent alive. A `weak` property is always optional, so its parameter is a double optional and follows <doc:OptionalProperties>: `copying(next: nil)` keeps the current reference, while `copying(next: .some(nil))` clears it.
+
+### Noncopyable types
+
+A `~Copyable` type is supported as long as the properties `copying` carries are themselves copyable. Methods on such a type borrow `self` by default, which is all `copying` needs: it reads each property and returns a freshly built instance.
+
+```swift
+@Copying
+struct Buffer: ~Copyable {
+    var id: Int
+    var label: String
+}
+```
+
+A *noncopyable property* is a different matter, and one the macro cannot see. The generated call reads the property to pass it on, which consumes a noncopyable value, so the code does not compile — the same blind spot as a wrapper without `init(wrappedValue:)`: whether a type is copyable is not something the property's spelling says.
