@@ -7,6 +7,9 @@ struct StoredProperty {
     let name: String
     /// The property's type, spelled the way the declaration spells it.
     let type: TypeSyntax
+    /// The level the property can be read at, which caps the level of the members the
+    /// macro generates — see ``AccessLevel/forGeneratedMembers(ofTypeWith:copying:)``.
+    let accessLevel: AccessLevel
 
     /// The type the `copying` parameter wraps in an optional.
     ///
@@ -64,9 +67,12 @@ extension StoredProperty {
                 continue
             }
 
+            // The modifiers sit on the declaration, so every binding it introduces —
+            // `private let width, height: Int` declares two — shares its access level.
+            let accessLevel = AccessLevel(ofPropertyWith: variable.modifiers)
             let isLet = variable.bindingSpecifier.tokenKind == .keyword(.let)
             for (binding, declaredType) in zip(variable.bindings, declaredTypes(in: variable.bindings)) {
-                switch outcome(of: binding, declaredType: declaredType, isLet: isLet) {
+                switch outcome(of: binding, declaredType: declaredType, isLet: isLet, accessLevel: accessLevel) {
                 case .copyable(let property):
                     properties.append(property)
                 case .problem(let diagnostic):
@@ -94,11 +100,13 @@ extension StoredProperty {
     }
 
     /// Classifies one binding of a `var`/`let` declaration, given the type it spells
-    /// out (see `declaredTypes(in:)`) and whether the declaration binds constants.
+    /// out (see `declaredTypes(in:)`), whether the declaration binds constants, and
+    /// the level the declaration can be read at.
     private static func outcome(
         of binding: PatternBindingSyntax,
         declaredType: TypeSyntax?,
-        isLet: Bool
+        isLet: Bool,
+        accessLevel: AccessLevel
     ) -> BindingOutcome {
         // Computed and coroutine-accessor properties are not stored.
         if let accessorBlock = binding.accessorBlock, !isStored(accessorBlock) {
@@ -130,7 +138,9 @@ extension StoredProperty {
             let propertyName = pattern.identifier.text
             return .problem(CopyingDiagnostic.missingTypeAnnotation(propertyName: propertyName).diagnostic(at: binding))
         }
-        return .copyable(StoredProperty(name: pattern.identifier.text, type: declaredType.trimmed))
+        return .copyable(
+            StoredProperty(name: pattern.identifier.text, type: declaredType.trimmed, accessLevel: accessLevel)
+        )
     }
 
     /// The type each binding of a declaration spells out, in order, with `nil` where

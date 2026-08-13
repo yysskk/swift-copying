@@ -4,7 +4,7 @@ import SwiftSyntaxBuilder
 /// Renders the `copying` method that `@Copying` adds to a type.
 enum CopyingMethodRenderer {
     /// Builds the `copying` method for a type from its name, generic parameters,
-    /// declaration modifiers, and copyable stored properties.
+    /// access level, and copyable stored properties.
     ///
     /// The generated method takes one optional parameter per stored property,
     /// defaulting to `nil`, and returns a new instance built from the given
@@ -12,11 +12,10 @@ enum CopyingMethodRenderer {
     static func render(
         typeName: String,
         genericParameterClause: GenericParameterClauseSyntax?,
-        modifiers: DeclModifierListSyntax,
+        accessLevel: AccessLevel,
         storedProperties: [StoredProperty]
     ) -> DeclSyntax {
         let fullTypeName = makeFullTypeName(name: typeName, genericParameterClause: genericParameterClause)
-        let accessLevel = modifiers.accessLevelForGeneratedMembers
 
         let documentation =
             storedProperties
@@ -38,7 +37,7 @@ enum CopyingMethodRenderer {
             /// - Parameters:
             \(raw: documentation)
             /// - Returns: A new instance with the specified modifications.
-            \(raw: accessLevel)func copying(
+            \(raw: accessLevel.rendered)func copying(
             \(raw: parameters)
             ) -> \(raw: fullTypeName) {
                 \(raw: typeName)(

@@ -199,7 +199,7 @@ The macro generates a parameter only for stored properties that can take part in
 
 The initializer warnings are not errors because an initializer declared in an extension or inherited from a superclass satisfies the call but is invisible to a macro, which only sees the declaration it is attached to. The `final` warning is not an error because a class nothing subclasses copies itself correctly.
 
-The generated method inherits the type's access level: an `open` type produces a `public` method, and a `private` type produces a `fileprivate` one, so the method is callable exactly where the type is.
+The generated method takes the type's access level, capped at the least visible property it copies — the rule Swift applies to a struct's memberwise initializer. A `public` type whose copied properties are all `public` gets a `public` method; give it an `internal` or `private` property and the method drops to that level, so a copy can never vary state from somewhere that state is hidden, and a parameter can never name a type the method's callers cannot see. An `open` type or property counts as `public` and a `private` type as `fileprivate`, but a `private` property keeps the method `private`, which reaches the type declaration and its extensions in the same file — exactly as far as the property does. A modifier that constrains only the setter, such as `private(set)`, does not lower the cap, because `copying` reads the property rather than assigning through it. To keep a `public` copying method, declare the copied properties `public`.
 
 ## Documentation
 

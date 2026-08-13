@@ -26,6 +26,13 @@ public struct CopyingMacro: MemberMacro {
             throw CopyingDiagnostic.noStoredProperties.error(at: node)
         }
 
+        // The method and the initializer the Fix-It writes share one level, so a copy
+        // is never buildable from somewhere the state it carries is hidden.
+        let accessLevel = AccessLevel.forGeneratedMembers(
+            ofTypeWith: declaration.modifiers,
+            copying: storedProperties
+        )
+
         // A class that can still be subclassed hands `copying` down to its subclasses,
         // and an inherited one rebuilds only the superclass — see ``SubclassingHazard``.
         // This only warns, and the method is still generated: a class nothing subclasses
@@ -49,7 +56,10 @@ public struct CopyingMacro: MemberMacro {
             context.diagnose(
                 CopyingDiagnostic
                     .missingInitializer(typeName: target.typeName, signature: initializerRequirement.signature)
-                    .diagnostic(at: node, fixIts: [initializerRequirement.fixIt(insertingInto: declaration)])
+                    .diagnostic(
+                        at: node,
+                        fixIts: [initializerRequirement.fixIt(insertingInto: declaration, accessLevel: accessLevel)]
+                    )
             )
         case .unusableInitializer(let initializer):
             // Anchored at the initializer itself: it is the thing to change, and the
@@ -68,7 +78,7 @@ public struct CopyingMacro: MemberMacro {
             CopyingMethodRenderer.render(
                 typeName: target.typeName,
                 genericParameterClause: target.genericParameterClause,
-                modifiers: declaration.modifiers,
+                accessLevel: accessLevel,
                 storedProperties: storedProperties
             )
         ]

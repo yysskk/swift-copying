@@ -16,12 +16,56 @@ private struct PrivatePerson {
     let name: String
 }
 
-// A type spelling out the access level it would get by default. An explicit
-// `internal` has to be carried over as written, and a modifier can only be spelled
-// out at file scope.
+// A type spelling out the access level it would get by default, which a modifier can
+// only be spelled out at file scope to do.
 @Copying
 internal struct InternalPerson {
     let name: String
+}
+
+// A `public` type that copies a property it does not expose: the generated method
+// stops at that property, so no other module can vary state it cannot see.
+@Copying
+public struct CappedSession {
+    public let id: String
+    var token: String
+}
+
+// A `private` copied property caps the generated method at `private`, which reaches
+// the type declaration and its extensions in this file — exactly as far as the
+// property itself does.
+@Copying
+private struct Credentials {
+    var user: String
+    private var secret: String
+
+    init(user: String, secret: String) {
+        self.user = user
+        self.secret = secret
+    }
+}
+
+extension Credentials {
+    /// Calls the `private` generated method from an extension of the same type, the
+    /// far end of the scope such a method is callable in.
+    func rotating(to secret: String) -> Credentials {
+        copying(secret: secret)
+    }
+
+    var revealedSecret: String {
+        secret
+    }
+}
+
+// A property whose setter alone is restricted. `copying` reads the property and
+// builds a new instance, so the method stays as visible as the property is readable.
+@Copying
+public struct Odometer {
+    public private(set) var kilometers: Int
+
+    public init(kilometers: Int) {
+        self.kilometers = kilometers
+    }
 }
 
 // A property wrapper with `init(wrappedValue:)` — the shape the generated `copying`
@@ -175,6 +219,33 @@ struct CopyingTests {
         let copied = person.copying(name: "Jane")
 
         #expect(copied.name == "Jane")
+    }
+
+    @Test("Generated method of a public type capped at an internal property is callable in the module")
+    func cappedPublicTypeCompileTest() {
+        let session = CappedSession(id: "abc", token: "first")
+        let copied = session.copying(token: "second")
+
+        #expect(copied.id == "abc")
+        #expect(copied.token == "second")
+    }
+
+    @Test("Generated method capped at a private property is callable from the type's extension")
+    func privatePropertyCappedMethodCompileTest() {
+        let credentials = Credentials(user: "john", secret: "hunter2")
+        let rotated = credentials.rotating(to: "swordfish")
+
+        #expect(rotated.user == "john")
+        #expect(rotated.revealedSecret == "swordfish")
+    }
+
+    @Test("Generated method of a type with a setter-restricted property stays as visible as the type")
+    func setterRestrictedPropertyCompileTest() {
+        let odometer = Odometer(kilometers: 12)
+        let copied = odometer.copying(kilometers: 20)
+
+        #expect(odometer.kilometers == 12)
+        #expect(copied.kilometers == 20)
     }
 
     @Test("Copying without arguments returns equivalent instance")

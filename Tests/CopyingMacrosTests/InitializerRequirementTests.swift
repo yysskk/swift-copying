@@ -726,6 +726,60 @@ struct InitializerRequirementTests {
         )
     }
 
+    @Test("Copying macro Fix-It initializer carries the capped access level")
+    func copyingMacroFixItCarriesCappedAccessLevel() {
+        assertMacroExpansionForTesting(
+            """
+            @Copying
+            public actor Counter {
+                var value: Int = 0
+            }
+            """,
+            // The property is `internal`, so both the method and the initializer the
+            // Fix-It writes stop there rather than following the `public` actor.
+            expandedSource: """
+                public actor Counter {
+                    var value: Int = 0
+
+                    /// Creates a copy of this instance with the specified properties modified.
+                    /// - Parameters:
+                    ///   - value: The new value for `value`, or `nil` to keep the current value.
+                    /// - Returns: A new instance with the specified modifications.
+                    func copying(
+                        value: (Int)? = nil
+                    ) -> Counter {
+                        Counter(
+                            value: value ?? self.value
+                        )
+                    }
+                }
+                """,
+            diagnostics: [
+                DiagnosticSpec(
+                    id: MessageID(domain: "CopyingMacros", id: "missingInitializer"),
+                    message:
+                        "@Copying requires 'Counter' to declare 'init(value:)', which the generated 'copying' method calls",
+                    line: 1,
+                    column: 1,
+                    severity: .warning,
+                    fixIts: [FixItSpec(message: "Add 'init(value:)'")]
+                )
+            ],
+            macros: testMacros,
+            applyFixIts: ["Add 'init(value:)'"],
+            fixedSource: """
+                @Copying
+                public actor Counter {
+                    var value: Int = 0
+
+                    init(value: Int) {
+                        self.value = value
+                    }
+                }
+                """
+        )
+    }
+
     @Test("Copying macro Fix-It initializer follows the indentation of a nested type")
     func copyingMacroFixItFollowsNestedIndentation() {
         assertMacroExpansionForTesting(

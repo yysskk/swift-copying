@@ -32,5 +32,9 @@
 ///   is attached to, so a subclass inherits one that rebuilds only the superclass and
 ///   silently discards its own state. The macro warns when the class is not `final`
 ///   and offers a Fix-It that marks it; see <doc:Limitations>.
+/// - Note: The generated method takes the type's access level, capped at the least
+///   visible property it copies — the rule Swift applies to a memberwise
+///   initializer. Declare the copied properties `public` to keep a `public`
+///   `copying` method; see <doc:Limitations>.
 @attached(member, names: named(copying))
 public macro Copying() = #externalMacro(module: "CopyingMacros", type: "CopyingMacro")

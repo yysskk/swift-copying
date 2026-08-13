@@ -84,7 +84,7 @@ final class Derived: Base {
 }
 ```
 
-From another module it is not an option. The generated method carries the type's access level, and an `open` class produces a `public` one, which Swift refuses to let a subclass override outside the module that declares it. A subclass there is stuck with the inherited `copying` and has no way to correct it, so an `open` class is flagged like any other — even though `final` is the opposite of what `open` asks for. A type genuinely meant to be subclassed across modules is a type to write `copying` for by hand.
+From another module it is not an option. The generated method is never `open` — an `open` class produces at most a `public` one, and less when it copies a less visible property — which Swift refuses to let a subclass override outside the module that declares it. A subclass there is stuck with the inherited `copying` and has no way to correct it, so an `open` class is flagged like any other — even though `final` is the opposite of what `open` asks for. A type genuinely meant to be subclassed across modules is a type to write `copying` for by hand.
 
 ### The initializer requirement
 
@@ -157,6 +157,38 @@ extension Widget {
 ```
 
 That code compiles and `copying` works, yet the macro cannot know it. As an error the diagnostic would reject working code with no way to opt out; as a warning it costs one false positive at worst. For the same reason `copying` is still generated when either warning fires.
+
+### The access level of the generated method
+
+The generated method takes the annotated type's access level, capped at the least visible property it copies. This is the rule Swift applies to a struct's memberwise initializer, and for the same two reasons:
+
+```swift
+struct Token { … }            // internal
+
+@Copying
+public struct Session {
+    public let id: String
+    private var token: String
+}
+// The method is 'private', not 'public'.
+```
+
+A method more visible than a property it copies would hand out what the property's access level withholds: a `public copying(id:token:)` lets any module build a `Session` that varies `token`, which is exactly what `private` is there to prevent. And a method more visible than a copied property's *type* does not compile at all — a `public` method taking `Token` is rejected with "method cannot be declared public because its parameter uses an internal type". Capping at the property removes both.
+
+The two levels the macro adjusts are unchanged: `open` counts as `public`, since the generated method is a factory that is never overridden, and a `private` *type* yields a `fileprivate` method, since a `private` member would be confined to the type declaration while the type itself stays usable in the rest of the file. A `private` *property* is the reverse: it keeps the method `private`, which reaches the type declaration and its extensions in the same file — exactly as far as the property does.
+
+Two kinds of member never lower the cap. A modifier that constrains only the setter, such as `private(set)`, leaves read access alone, and `copying` reads a property and passes the value to an initializer rather than assigning through it:
+
+```swift
+@Copying
+public struct Scoreboard {
+    public private(set) var score: Int      // 'public func copying(score:)'
+}
+```
+
+And a member the method does not copy — `static`, `lazy`, computed, or a `let` with an initial value — has no parameter to hide, however private it is.
+
+To keep a `public` copying method, declare the copied properties `public`.
 
 ### Property wrappers
 

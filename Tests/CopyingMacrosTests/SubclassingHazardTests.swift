@@ -70,7 +70,7 @@ struct SubclassingHazardTests {
             """
             @Copying
             public class User {
-                let id: Int
+                public let id: Int
 
                 public init(id: Int) {
                     self.id = id
@@ -79,7 +79,7 @@ struct SubclassingHazardTests {
             """,
             expandedSource: """
                 public class User {
-                    let id: Int
+                    public let id: Int
 
                     public init(id: Int) {
                         self.id = id
@@ -114,7 +114,7 @@ struct SubclassingHazardTests {
             fixedSource: """
                 @Copying
                 public final class User {
-                    let id: Int
+                    public let id: Int
 
                     public init(id: Int) {
                         self.id = id
@@ -130,7 +130,7 @@ struct SubclassingHazardTests {
             """
             @Copying
             open class User {
-                let id: Int
+                public let id: Int
 
                 public init(id: Int) {
                     self.id = id
@@ -139,7 +139,7 @@ struct SubclassingHazardTests {
             """,
             expandedSource: """
                 open class User {
-                    let id: Int
+                    public let id: Int
 
                     public init(id: Int) {
                         self.id = id
@@ -176,7 +176,7 @@ struct SubclassingHazardTests {
             fixedSource: """
                 @Copying
                 public final class User {
-                    let id: Int
+                    public let id: Int
 
                     public init(id: Int) {
                         self.id = id
