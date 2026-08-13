@@ -196,6 +196,21 @@ struct CopyingTests {
         #expect(copiedPair.value == 456)
     }
 
+    @Test("Generated code for an escaped property name compiles and works correctly")
+    func escapedPropertyNameCompileTest() {
+        @Copying
+        struct Style {
+            let `default`: String
+            let weight: Int
+        }
+
+        let style = Style(default: "regular", weight: 400)
+        let copied = style.copying(default: "bold")
+
+        #expect(copied.default == "bold")
+        #expect(copied.weight == 400)
+    }
+
     @Test("Generated code for a struct with a parameter pack compiles and works correctly")
     func parameterPackCompileTest() {
         @Copying

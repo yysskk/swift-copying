@@ -20,7 +20,7 @@ struct InitializerRequirement {
     /// Creates the requirement implied by the properties the copy has to pass on.
     init(storedProperties: [StoredProperty]) {
         self.storedProperties = storedProperties
-        self.argumentLabels = storedProperties.map(\.name)
+        self.argumentLabels = storedProperties.map(\.argumentLabel)
     }
 
     /// The required initializer spelled the way Swift writes a compound name,
@@ -82,10 +82,15 @@ struct InitializerRequirement {
     /// order among the parameters, and every parameter they skip past must be
     /// omittable. Parameter types are not compared: a macro sees only how a type is
     /// spelled, so `Int` and a typealias for it would look like a mismatch.
+    ///
+    /// A variadic parameter is the one exception to matching by label alone. It
+    /// gathers its arguments one by one, while the generated call passes each
+    /// property as a single value — an array to `String...`, say, which Swift does
+    /// not accept. So it can only ever be skipped, never matched.
     private func acceptsArguments(_ initializer: InitializerDeclSyntax) -> Bool {
         var labels = argumentLabels[...]
         for parameter in initializer.signature.parameterClause.parameters {
-            if let label = labels.first, parameter.argumentLabel == label {
+            if parameter.ellipsis == nil, let label = labels.first, parameter.argumentLabel == label {
                 labels.removeFirst()
             } else if !parameter.isOmittable {
                 return false
@@ -180,8 +185,16 @@ extension InitializerDeclSyntax {
 extension FunctionParameterSyntax {
     /// The label a caller writes for this parameter, or `nil` when it takes an
     /// unlabelled argument (`_ value: Int`) and so cannot match a labelled one.
+    ///
+    /// The backticks that escape an identifier are not part of it, and a label needs
+    /// none where a property does: `init(default value: Int)` labels the argument for
+    /// a property declared `` `default` ``. Both sides are compared as identifiers so
+    /// the two meet.
     fileprivate var argumentLabel: String? {
-        firstName.tokenKind == .wildcard ? nil : firstName.text
+        guard firstName.tokenKind != .wildcard else {
+            return nil
+        }
+        return firstName.identifier?.name ?? firstName.text
     }
 
     /// Whether a call may leave this parameter out, which Swift allows for a parameter

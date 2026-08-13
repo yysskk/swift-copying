@@ -17,9 +17,14 @@ enum CopyingMethodRenderer {
     ) -> DeclSyntax {
         let fullTypeName = makeFullTypeName(name: typeName, genericParameterClause: genericParameterClause)
 
+        // Documentation names a parameter as its label, which carries no escaping:
+        // backticks around it would leave the parameter unmatched and the code span
+        // reading as a symbol link.
         let documentation =
             storedProperties
-            .map { "///   - \($0.name): The new value for `\($0.name)`, or `nil` to keep the current value." }
+            .map {
+                "///   - \($0.argumentLabel): The new value for `\($0.argumentLabel)`, or `nil` to keep the current value."
+            }
             .joined(separator: "\n")
         let parameters =
             storedProperties

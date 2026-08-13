@@ -3,8 +3,13 @@ import SwiftSyntax
 
 /// A single stored property that the generated `copying` method can change.
 struct StoredProperty {
-    /// The property's name, used as both the parameter label and the argument label.
+    /// The property's name, spelled the way the declaration spells it — backticks
+    /// included — as generated code has to write it to refer to the property.
     let name: String
+    /// The property's name without the backticks that escape it, which is how an
+    /// initializer's argument label and a compound name such as `init(default:)`
+    /// spell it.
+    let argumentLabel: String
     /// The property's type, spelled the way the declaration spells it.
     let type: TypeSyntax
     /// The level the property can be read at, which caps the level of the members the
@@ -194,7 +199,12 @@ extension StoredProperty {
             )
         }
         return .copyable(
-            StoredProperty(name: pattern.identifier.text, type: declaredType.trimmed, accessLevel: accessLevel)
+            StoredProperty(
+                name: pattern.identifier.text,
+                argumentLabel: pattern.identifier.identifier?.name ?? pattern.identifier.text,
+                type: declaredType.trimmed,
+                accessLevel: accessLevel
+            )
         )
     }
 
