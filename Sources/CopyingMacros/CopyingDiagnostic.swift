@@ -63,6 +63,22 @@ struct CopyingDiagnostic: DiagnosticMessage {
         message: "@Copying does not support tuple pattern bindings; declare each property separately"
     )
 
+    /// A copyable property's type expands a parameter pack, which the generated call
+    /// cannot pass on.
+    ///
+    /// The copy is built by passing each property to an initializer, and Swift does
+    /// not compile such a call for a value whose type expands a pack — not through a
+    /// memberwise initializer, not through one written by hand. The type's other
+    /// properties are copyable as usual; only this one has no way through.
+    static func packExpansionPropertyType(propertyName: String) -> CopyingDiagnostic {
+        CopyingDiagnostic(
+            id: "packExpansionPropertyType",
+            severity: .error,
+            message:
+                "@Copying cannot copy '\(propertyName)': 'copying' passes each property to an initializer, which Swift cannot do with a value that expands a parameter pack"
+        )
+    }
+
     /// A property a copy would have to carry is declared inside `#if`, so no single
     /// expansion can be right on every build configuration.
     ///

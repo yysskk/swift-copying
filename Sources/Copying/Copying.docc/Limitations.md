@@ -24,6 +24,7 @@ The macro emits an error, so the mistake surfaces at compile time instead of cor
 - **A `var` bound through a tuple pattern**, such as `var (x, y) = (0, 0)`. Declare each property on its own line so the macro can address them individually.
 - **A type with no copyable stored properties at all.** `@Copying` needs at least one property it can vary.
 - **Applying `@Copying` to anything other than a `struct`, `class`, or `actor`.**
+- **A copyable property whose type expands a parameter pack**, such as `let values: (repeat each T)`. The type itself may be generic over a pack — `struct Bundle<each T>` is copied like any other generic type, and the generated method returns `Bundle<repeat each T>` — but a copy is built by passing each property to an initializer, and Swift does not compile such a call for a value that expands a pack, whether the initializer is memberwise or written by hand. A type that stores one needs a `copying` written by hand.
 - **A copyable property declared inside `#if`**, such as a `var inset: CGFloat` under `#if os(iOS)`. A macro is handed the declaration before the directives are resolved and cannot know which branch a build takes, so no single expansion is right for all of them. Declare the property unconditionally and vary its *value* by configuration instead. A member inside `#if` that a copy never carries anyway — a computed, `static`, or `lazy` property, or a `let` with an initial value — is skipped as silently as it is outside one.
 
 When several properties break the rules, every violation is reported in a single build.

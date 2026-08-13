@@ -184,9 +184,28 @@ extension StoredProperty {
             let propertyName = pattern.identifier.text
             return .problem(CopyingDiagnostic.missingTypeAnnotation(propertyName: propertyName).diagnostic(at: binding))
         }
+
+        // A value whose type expands a parameter pack, such as `(repeat each T)`,
+        // cannot be passed to an initializer, which is how a copy is built.
+        if expandsAParameterPack(declaredType) {
+            let propertyName = pattern.identifier.text
+            return .problem(
+                CopyingDiagnostic.packExpansionPropertyType(propertyName: propertyName).diagnostic(at: declaredType)
+            )
+        }
         return .copyable(
             StoredProperty(name: pattern.identifier.text, type: declaredType.trimmed, accessLevel: accessLevel)
         )
+    }
+
+    /// Whether `type` expands a parameter pack anywhere within it.
+    ///
+    /// The `repeat` is looked for as a token rather than by walking for a pack
+    /// expansion node, which keeps the check indifferent to where the expansion sits
+    /// — a tuple element, a generic argument, a function parameter. `repeat` opens a
+    /// loop everywhere else in the language, so in a type it can only be this.
+    private static func expandsAParameterPack(_ type: TypeSyntax) -> Bool {
+        type.tokens(viewMode: .sourceAccurate).contains { $0.tokenKind == .keyword(.repeat) }
     }
 
     /// The type each binding of a declaration spells out, in order, with `nil` where

@@ -47,7 +47,7 @@ enum CopyingMethodRenderer {
             """
     }
 
-    /// Returns the type's name with its generic parameter names reattached
+    /// Returns the type's name with its generic parameters reattached as arguments
     /// (e.g. `Pair<K, V>`), or just the name when the type is not generic.
     private static func makeFullTypeName(
         name: String,
@@ -56,7 +56,26 @@ enum CopyingMethodRenderer {
         guard let genericParameterClause else {
             return name
         }
-        let genericParameters = genericParameterClause.parameters.map(\.name.text).joined(separator: ", ")
-        return "\(name)<\(genericParameters)>"
+        let genericArguments = genericParameterClause.parameters.map { parameter in
+            // A pack is referred to by expanding it; the plain name Swift rejects with
+            // "pack reference can only appear in pack expansion".
+            isParameterPack(parameter) ? "repeat each \(parameter.name.text)" : parameter.name.text
+        }
+        return "\(name)<\(genericArguments.joined(separator: ", "))>"
+    }
+
+    /// Whether `parameter` declares a parameter pack, as `each T` does.
+    ///
+    /// The `each` is read as a token preceding the parameter's name rather than
+    /// through the typed child, which swift-syntax 600 calls `eachKeyword` and later
+    /// versions rename to `specifier`; the token itself is the same on every version
+    /// this package supports. Only the tokens before the name are considered, so an
+    /// `each` appearing in an inherited type is not mistaken for the specifier. A
+    /// value generic (`let n: Int`) carries a different specifier and keeps its plain
+    /// name, which is how a value generic is referred to anyway.
+    private static func isParameterPack(_ parameter: GenericParameterSyntax) -> Bool {
+        parameter.tokens(viewMode: .sourceAccurate)
+            .prefix { $0.id != parameter.name.id }
+            .contains { $0.tokenKind == .keyword(.each) }
     }
 }

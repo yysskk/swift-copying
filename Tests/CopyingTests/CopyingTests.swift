@@ -196,6 +196,21 @@ struct CopyingTests {
         #expect(copiedPair.value == 456)
     }
 
+    @Test("Generated code for a struct with a parameter pack compiles and works correctly")
+    func parameterPackCompileTest() {
+        @Copying
+        struct Row<each T> {
+            let label: String
+            let count: Int
+        }
+
+        let row = Row<Int, String>(label: "first", count: 1)
+        let copied = row.copying(label: "second")
+
+        #expect(copied.label == "second")
+        #expect(copied.count == 1)
+    }
+
     @Test("Generated code for generic class compiles and works correctly")
     func genericClassCompileTest() {
         @Copying
