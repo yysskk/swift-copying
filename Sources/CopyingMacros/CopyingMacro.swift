@@ -34,7 +34,7 @@ public struct CopyingMacro: MemberMacro {
             context.diagnose(
                 CopyingDiagnostic
                     .subclassableClass(typeName: target.typeName)
-                    .diagnostic(at: subclassingHazard.anchor, fixIts: [subclassingHazard.fixIt()])
+                    .diagnostic(at: subclassingHazard.anchor, fixIts: [subclassingHazard.fixIt])
             )
         }
 
@@ -64,13 +64,14 @@ public struct CopyingMacro: MemberMacro {
             break
         }
 
-        let copyingMethod = CopyingMethodRenderer.render(
-            typeName: target.typeName,
-            genericParameterClause: target.genericParameterClause,
-            modifiers: declaration.modifiers,
-            storedProperties: storedProperties
-        )
-        return [copyingMethod]
+        return [
+            CopyingMethodRenderer.render(
+                typeName: target.typeName,
+                genericParameterClause: target.genericParameterClause,
+                modifiers: declaration.modifiers,
+                storedProperties: storedProperties
+            )
+        ]
     }
 }
 
