@@ -121,7 +121,9 @@ final class User {
 }
 ```
 
-Property types are not compared, only argument labels, so a typealias or a generic parameter never trips the check.
+Property types are not compared, only argument labels, so a typealias or a generic parameter never trips the check. A variadic parameter is the one exception to matching by label: it gathers its arguments one by one, while the generated call passes the property's value as a whole, so `init(id: Int, tags: String...)` does not satisfy a `tags: [String]` property. It counts as an extra parameter the call leaves out, exactly as `notes:` does above.
+
+Labels are compared as identifiers, so the backticks that escape a property name make no difference. A property declared `` var `default`: String `` is satisfied by `init(default value: String)`, the way Swift spells that label, and the warning names the signature the way Swift writes a compound name, `init(default:)`. The initializer the Fix-It writes escapes the identifier where the language requires it.
 
 ### Initializers the copy cannot call
 

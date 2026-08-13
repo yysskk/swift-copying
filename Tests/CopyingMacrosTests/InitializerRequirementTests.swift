@@ -312,6 +312,178 @@ struct InitializerRequirementTests {
         )
     }
 
+    @Test("Copying macro warns when a copied property's parameter is variadic")
+    func copyingMacroWarnsWhenInitializerParameterIsVariadic() {
+        assertMacroExpansionForTesting(
+            """
+            @Copying
+            final class Post {
+                let id: Int
+                var tags: [String]
+
+                init(id: Int, tags: String...) {
+                    self.id = id
+                    self.tags = tags
+                }
+            }
+            """,
+            // A variadic gathers its arguments one by one; the generated call passes
+            // the property's array as a single value, which Swift does not accept.
+            expandedSource: """
+                final class Post {
+                    let id: Int
+                    var tags: [String]
+
+                    init(id: Int, tags: String...) {
+                        self.id = id
+                        self.tags = tags
+                    }
+
+                    /// Creates a copy of this instance with the specified properties modified.
+                    /// - Parameters:
+                    ///   - id: The new value for `id`, or `nil` to keep the current value.
+                    ///   - tags: The new value for `tags`, or `nil` to keep the current value.
+                    /// - Returns: A new instance with the specified modifications.
+                    func copying(
+                        id: (Int)? = nil,
+                        tags: ([String])? = nil
+                    ) -> Post {
+                        Post(
+                            id: id ?? self.id,
+                            tags: tags ?? self.tags
+                        )
+                    }
+                }
+                """,
+            diagnostics: [
+                DiagnosticSpec(
+                    id: MessageID(domain: "CopyingMacros", id: "missingInitializer"),
+                    message:
+                        "@Copying requires 'Post' to declare 'init(id:tags:)', which the generated 'copying' method calls",
+                    line: 1,
+                    column: 1,
+                    severity: .warning,
+                    fixIts: [FixItSpec(message: "Add 'init(id:tags:)'")]
+                )
+            ],
+            macros: testMacros,
+            applyFixIts: ["Add 'init(id:tags:)'"],
+            // The inserted initializer takes an array where the existing one takes a
+            // variadic, so the two are overloads rather than a redeclaration.
+            fixedSource: """
+                @Copying
+                final class Post {
+                    let id: Int
+                    var tags: [String]
+
+                    init(id: Int, tags: String...) {
+                        self.id = id
+                        self.tags = tags
+                    }
+
+                    init(id: Int, tags: [String]) {
+                        self.id = id
+                        self.tags = tags
+                    }
+                }
+                """
+        )
+    }
+
+    @Test("Copying macro accepts a bare argument label for an escaped property name")
+    func copyingMacroAcceptsBareLabelForEscapedPropertyName() {
+        assertMacroExpansionForTesting(
+            """
+            @Copying
+            final class Theme {
+                var `default`: String
+
+                init(default value: String) {
+                    self.`default` = value
+                }
+            }
+            """,
+            // Backticks escape an identifier rather than being part of it, and a label
+            // needs none where a property does.
+            expandedSource: """
+                final class Theme {
+                    var `default`: String
+
+                    init(default value: String) {
+                        self.`default` = value
+                    }
+
+                    /// Creates a copy of this instance with the specified properties modified.
+                    /// - Parameters:
+                    ///   - default: The new value for `default`, or `nil` to keep the current value.
+                    /// - Returns: A new instance with the specified modifications.
+                    func copying(
+                        `default`: (String)? = nil
+                    ) -> Theme {
+                        Theme(
+                            `default`: `default` ?? self.`default`
+                        )
+                    }
+                }
+                """,
+            macros: testMacros
+        )
+    }
+
+    @Test("Copying macro spells an escaped property's signature without backticks")
+    func copyingMacroSpellsEscapedSignatureWithoutBackticks() {
+        assertMacroExpansionForTesting(
+            """
+            @Copying
+            final class Theme {
+                var `default`: String
+            }
+            """,
+            expandedSource: """
+                final class Theme {
+                    var `default`: String
+
+                    /// Creates a copy of this instance with the specified properties modified.
+                    /// - Parameters:
+                    ///   - default: The new value for `default`, or `nil` to keep the current value.
+                    /// - Returns: A new instance with the specified modifications.
+                    func copying(
+                        `default`: (String)? = nil
+                    ) -> Theme {
+                        Theme(
+                            `default`: `default` ?? self.`default`
+                        )
+                    }
+                }
+                """,
+            // A compound name carries no backticks, which is how Swift itself writes
+            // one; the initializer the Fix-It inserts still escapes the identifier.
+            diagnostics: [
+                DiagnosticSpec(
+                    id: MessageID(domain: "CopyingMacros", id: "missingInitializer"),
+                    message:
+                        "@Copying requires 'Theme' to declare 'init(default:)', which the generated 'copying' method calls",
+                    line: 1,
+                    column: 1,
+                    severity: .warning,
+                    fixIts: [FixItSpec(message: "Add 'init(default:)'")]
+                )
+            ],
+            macros: testMacros,
+            applyFixIts: ["Add 'init(default:)'"],
+            fixedSource: """
+                @Copying
+                final class Theme {
+                    var `default`: String
+
+                    init(`default`: String) {
+                        self.`default` = `default`
+                    }
+                }
+                """
+        )
+    }
+
     @Test("Copying macro warns when an initializer takes an unlabelled argument")
     func copyingMacroWarnsWhenInitializerTakesUnlabelledArgument() {
         assertMacroExpansionForTesting(
