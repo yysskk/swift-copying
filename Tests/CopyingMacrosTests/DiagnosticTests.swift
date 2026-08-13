@@ -106,6 +106,62 @@ struct DiagnosticTests {
         )
     }
 
+    @Test("Copying macro rejects a property whose type expands a parameter pack")
+    func copyingMacroRejectsPackExpansionPropertyType() {
+        assertMacroExpansionForTesting(
+            """
+            @Copying
+            struct Bundle<each T> {
+                let label: String
+                let values: (repeat each T)
+            }
+            """,
+            expandedSource: """
+                struct Bundle<each T> {
+                    let label: String
+                    let values: (repeat each T)
+                }
+                """,
+            diagnostics: [
+                DiagnosticSpec(
+                    id: MessageID(domain: "CopyingMacros", id: "packExpansionPropertyType"),
+                    message:
+                        "@Copying cannot copy 'values': 'copying' passes each property to an initializer, which Swift cannot do with a value that expands a parameter pack",
+                    line: 4,
+                    column: 17
+                )
+            ],
+            macros: testMacros
+        )
+    }
+
+    @Test("Copying macro rejects a pack expansion nested in a property's type")
+    func copyingMacroRejectsNestedPackExpansionPropertyType() {
+        assertMacroExpansionForTesting(
+            """
+            @Copying
+            struct Bundle<each T> {
+                let build: (repeat each T) -> String
+            }
+            """,
+            expandedSource: """
+                struct Bundle<each T> {
+                    let build: (repeat each T) -> String
+                }
+                """,
+            diagnostics: [
+                DiagnosticSpec(
+                    id: MessageID(domain: "CopyingMacros", id: "packExpansionPropertyType"),
+                    message:
+                        "@Copying cannot copy 'build': 'copying' passes each property to an initializer, which Swift cannot do with a value that expands a parameter pack",
+                    line: 3,
+                    column: 16
+                )
+            ],
+            macros: testMacros
+        )
+    }
+
     @Test("Copying macro rejects a stored property declared inside #if")
     func copyingMacroRejectsConditionalStoredProperty() {
         assertMacroExpansionForTesting(

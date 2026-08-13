@@ -400,6 +400,75 @@ struct ExpansionTests {
         )
     }
 
+    @Test("Copying macro with parameter pack")
+    func copyingMacroWithParameterPack() {
+        assertMacroExpansionForTesting(
+            """
+            @Copying
+            struct Bundle<each T> {
+                let label: String
+            }
+            """,
+            // A pack is referred to by expanding it: `Bundle<T>` is rejected with
+            // "pack reference 'T' can only appear in pack expansion".
+            expandedSource: """
+                struct Bundle<each T> {
+                    let label: String
+
+                    /// Creates a copy of this instance with the specified properties modified.
+                    /// - Parameters:
+                    ///   - label: The new value for `label`, or `nil` to keep the current value.
+                    /// - Returns: A new instance with the specified modifications.
+                    func copying(
+                        label: (String)? = nil
+                    ) -> Bundle<repeat each T> {
+                        Bundle(
+                            label: label ?? self.label
+                        )
+                    }
+                }
+                """,
+            macros: testMacros
+        )
+    }
+
+    @Test("Copying macro with a parameter pack alongside a plain generic parameter")
+    func copyingMacroWithMixedGenericParameters() {
+        assertMacroExpansionForTesting(
+            """
+            @Copying
+            struct Group<Label, each Item: Sendable> {
+                let label: Label
+                let count: Int
+            }
+            """,
+            // Only the pack is expanded; a plain parameter, constrained or not, keeps
+            // its bare name.
+            expandedSource: """
+                struct Group<Label, each Item: Sendable> {
+                    let label: Label
+                    let count: Int
+
+                    /// Creates a copy of this instance with the specified properties modified.
+                    /// - Parameters:
+                    ///   - label: The new value for `label`, or `nil` to keep the current value.
+                    ///   - count: The new value for `count`, or `nil` to keep the current value.
+                    /// - Returns: A new instance with the specified modifications.
+                    func copying(
+                        label: (Label)? = nil,
+                        count: (Int)? = nil
+                    ) -> Group<Label, repeat each Item> {
+                        Group(
+                            label: label ?? self.label,
+                            count: count ?? self.count
+                        )
+                    }
+                }
+                """,
+            macros: testMacros
+        )
+    }
+
     @Test("Copying macro with collection type properties")
     func copyingMacroWithCollectionTypeProperties() {
         assertMacroExpansionForTesting(
