@@ -63,6 +63,21 @@ struct CopyingDiagnostic: DiagnosticMessage {
         message: "@Copying does not support tuple pattern bindings; declare each property separately"
     )
 
+    /// A property a copy would have to carry is declared inside `#if`, so no single
+    /// expansion can be right on every build configuration.
+    ///
+    /// This is an error rather than a warning, unlike the three below: no code the
+    /// macro cannot see can make the expansion right. Carrying the property breaks
+    /// the configurations where the branch is inactive, and leaving it out either
+    /// fails to compile or, when the initializer defaults that parameter, silently
+    /// resets the property on every copy.
+    static let conditionalStoredProperty = CopyingDiagnostic(
+        id: "conditionalStoredProperty",
+        severity: .error,
+        message:
+            "@Copying does not support a stored property declared inside '#if'; declare the property unconditionally"
+    )
+
     /// The declaration does not declare an initializer that the generated `copying`
     /// method can call.
     static func missingInitializer(typeName: String, signature: String) -> CopyingDiagnostic {

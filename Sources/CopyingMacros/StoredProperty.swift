@@ -49,6 +49,9 @@ extension StoredProperty {
     ///   initializer with defaults, so skipping them would make every copy silently
     ///   reset them. A `let` tuple binding is skipped silently: it is immutable and
     ///   Swift does not allow it as struct storage anyway.
+    /// - A property a copy would carry that is declared inside `#if`. Which
+    ///   properties such a directive contributes depends on the build configuration,
+    ///   which a macro cannot know — see `conditionalDiagnostics(in:)`.
     ///
     /// - Throws: A ``SwiftDiagnostics/DiagnosticsError`` carrying every offending
     ///   binding, so a single compilation reports them all at once.
@@ -57,22 +60,13 @@ extension StoredProperty {
         var diagnostics: [Diagnostic] = []
 
         for member in declaration.memberBlock.members {
-            // Skip type-level (`static`/`class`) and `lazy` properties. A `static`/`class`
-            // property is not part of an instance's state, and a `lazy` property would
-            // require a mutating getter to read from `copying`; a fresh copy recomputes
-            // it on demand anyway.
-            guard let variable = member.decl.as(VariableDeclSyntax.self),
-                !variable.modifiers.contains(anyOf: .static, .class, .lazy)
-            else {
+            if let ifConfig = member.decl.as(IfConfigDeclSyntax.self) {
+                diagnostics.append(contentsOf: conditionalDiagnostics(in: ifConfig))
                 continue
             }
 
-            // The modifiers sit on the declaration, so every binding it introduces —
-            // `private let width, height: Int` declares two — shares its access level.
-            let accessLevel = AccessLevel(ofPropertyWith: variable.modifiers)
-            let isLet = variable.bindingSpecifier.tokenKind == .keyword(.let)
-            for (binding, declaredType) in zip(variable.bindings, declaredTypes(in: variable.bindings)) {
-                switch outcome(of: binding, declaredType: declaredType, isLet: isLet, accessLevel: accessLevel) {
+            for (_, outcome) in classifiedBindings(of: member) {
+                switch outcome {
                 case .copyable(let property):
                     properties.append(property)
                 case .problem(let diagnostic):
@@ -89,6 +83,47 @@ extension StoredProperty {
         return properties
     }
 
+    /// A diagnostic for every property inside `ifConfig` that a copy would have to
+    /// carry.
+    ///
+    /// Such a property exists only on the build configurations its branch is active
+    /// on, and no single expansion is right for all of them: the generated call
+    /// leaves the property out, which fails to compile where the branch is active —
+    /// or, when the initializer defaults that parameter, silently resets the property
+    /// on every copy. Members a copy never carries anyway, such as a computed or
+    /// `static` one, stay silently skipped exactly as they are outside `#if`.
+    private static func conditionalDiagnostics(in ifConfig: IfConfigDeclSyntax) -> [Diagnostic] {
+        ifConfig.conditionalMembers
+            .flatMap(classifiedBindings(of:))
+            .filter { _, outcome in outcome.concernsACopy }
+            .map { binding, _ in CopyingDiagnostic.conditionalStoredProperty.diagnostic(at: binding) }
+    }
+
+    /// How each binding `member` declares takes part in a copy, paired with the
+    /// binding itself, or nothing at all when the member declares no property a copy
+    /// could carry.
+    private static func classifiedBindings(
+        of member: MemberBlockItemSyntax
+    ) -> [(binding: PatternBindingSyntax, outcome: BindingOutcome)] {
+        // Skip type-level (`static`/`class`) and `lazy` properties. A `static`/`class`
+        // property is not part of an instance's state, and a `lazy` property would
+        // require a mutating getter to read from `copying`; a fresh copy recomputes
+        // it on demand anyway.
+        guard let variable = member.decl.as(VariableDeclSyntax.self),
+            !variable.modifiers.contains(anyOf: .static, .class, .lazy)
+        else {
+            return []
+        }
+
+        // The modifiers sit on the declaration, so every binding it introduces —
+        // `private let width, height: Int` declares two — shares its access level.
+        let accessLevel = AccessLevel(ofPropertyWith: variable.modifiers)
+        let isLet = variable.bindingSpecifier.tokenKind == .keyword(.let)
+        return zip(variable.bindings, declaredTypes(in: variable.bindings)).map { binding, declaredType in
+            (binding, outcome(of: binding, declaredType: declaredType, isLet: isLet, accessLevel: accessLevel))
+        }
+    }
+
     /// How a single binding takes part in a copy.
     private enum BindingOutcome {
         /// The binding declares a property the copy passes on.
@@ -97,6 +132,17 @@ extension StoredProperty {
         case problem(Diagnostic)
         /// The binding declares nothing a copy has to carry.
         case notCopyable
+
+        /// Whether a copy has to account for this binding, either by carrying the
+        /// property or by reporting that it cannot.
+        var concernsACopy: Bool {
+            switch self {
+            case .copyable, .problem:
+                return true
+            case .notCopyable:
+                return false
+            }
+        }
     }
 
     /// Classifies one binding of a `var`/`let` declaration, given the type it spells

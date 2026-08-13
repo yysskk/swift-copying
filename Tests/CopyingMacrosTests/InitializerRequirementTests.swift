@@ -726,6 +726,97 @@ struct InitializerRequirementTests {
         )
     }
 
+    @Test("Copying macro stays silent when the initializer is declared inside #if")
+    func copyingMacroStaysSilentWhenInitializerIsConditional() {
+        assertMacroExpansionForTesting(
+            """
+            @Copying
+            final class User {
+                var id: Int = 0
+                #if os(iOS)
+                init(id: Int) {
+                    self.id = id
+                }
+                #endif
+            }
+            """,
+            // A macro cannot know which branch a build takes, so warning here would be
+            // wrong wherever this one is active — and the Fix-It would write a second
+            // initializer with the same signature.
+            expandedSource: """
+                final class User {
+                    var id: Int = 0
+                    #if os(iOS)
+                    init(id: Int) {
+                        self.id = id
+                    }
+                    #endif
+
+                    /// Creates a copy of this instance with the specified properties modified.
+                    /// - Parameters:
+                    ///   - id: The new value for `id`, or `nil` to keep the current value.
+                    /// - Returns: A new instance with the specified modifications.
+                    func copying(
+                        id: (Int)? = nil
+                    ) -> User {
+                        User(
+                            id: id ?? self.id
+                        )
+                    }
+                }
+                """,
+            macros: testMacros
+        )
+    }
+
+    @Test("Copying macro stays silent when a conditional initializer joins a non-matching one")
+    func copyingMacroStaysSilentWhenConditionalInitializerJoinsANonMatchingOne() {
+        assertMacroExpansionForTesting(
+            """
+            @Copying
+            final class User {
+                var id: Int = 0
+
+                init() {
+                }
+
+                #if os(iOS)
+                init(id: Int) {
+                    self.id = id
+                }
+                #endif
+            }
+            """,
+            expandedSource: """
+                final class User {
+                    var id: Int = 0
+
+                    init() {
+                    }
+
+                    #if os(iOS)
+                    init(id: Int) {
+                        self.id = id
+                    }
+                    #endif
+
+                    /// Creates a copy of this instance with the specified properties modified.
+                    /// - Parameters:
+                    ///   - id: The new value for `id`, or `nil` to keep the current value.
+                    /// - Returns: A new instance with the specified modifications.
+                    func copying(
+                        id: (Int)? = nil
+                    ) -> User {
+                        User(
+                            id: id ?? self.id
+                        )
+                    }
+                }
+                """,
+            macros: testMacros
+        )
+    }
+
     @Test("Copying macro Fix-It initializer carries the capped access level")
     func copyingMacroFixItCarriesCappedAccessLevel() {
         assertMacroExpansionForTesting(

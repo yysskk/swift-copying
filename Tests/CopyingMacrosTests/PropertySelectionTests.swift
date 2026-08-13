@@ -125,6 +125,52 @@ struct PropertySelectionTests {
         )
     }
 
+    @Test("Copying macro skips members inside #if that a copy never carries")
+    func copyingMacroSkipsNonCopyableConditionalMembers() {
+        assertMacroExpansionForTesting(
+            """
+            @Copying
+            struct Settings {
+                var name: String
+                #if DEBUG
+                static let shared: Int = 0
+                let limit: Int = 3
+                var doubled: Int {
+                    limit * 2
+                }
+                #endif
+            }
+            """,
+            // Only a property a copy would have to carry makes a directive a problem;
+            // these are skipped inside `#if` exactly as they are outside it.
+            expandedSource: """
+                struct Settings {
+                    var name: String
+                    #if DEBUG
+                    static let shared: Int = 0
+                    let limit: Int = 3
+                    var doubled: Int {
+                        limit * 2
+                    }
+                    #endif
+
+                    /// Creates a copy of this instance with the specified properties modified.
+                    /// - Parameters:
+                    ///   - name: The new value for `name`, or `nil` to keep the current value.
+                    /// - Returns: A new instance with the specified modifications.
+                    func copying(
+                        name: (String)? = nil
+                    ) -> Settings {
+                        Settings(
+                            name: name ?? self.name
+                        )
+                    }
+                }
+                """,
+            macros: testMacros
+        )
+    }
+
     @Test("Copying macro skips let constants with initial values")
     func copyingMacroSkipsInitializedLetConstants() {
         assertMacroExpansionForTesting(

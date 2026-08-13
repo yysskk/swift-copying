@@ -24,6 +24,7 @@ The macro emits an error, so the mistake surfaces at compile time instead of cor
 - **A `var` bound through a tuple pattern**, such as `var (x, y) = (0, 0)`. Declare each property on its own line so the macro can address them individually.
 - **A type with no copyable stored properties at all.** `@Copying` needs at least one property it can vary.
 - **Applying `@Copying` to anything other than a `struct`, `class`, or `actor`.**
+- **A copyable property declared inside `#if`**, such as a `var inset: CGFloat` under `#if os(iOS)`. A macro is handed the declaration before the directives are resolved and cannot know which branch a build takes, so no single expansion is right for all of them. Declare the property unconditionally and vary its *value* by configuration instead. A member inside `#if` that a copy never carries anyway — a computed, `static`, or `lazy` property, or a `let` with an initial value — is skipped as silently as it is outside one.
 
 When several properties break the rules, every violation is reported in a single build.
 
@@ -157,6 +158,8 @@ extension Widget {
 ```
 
 That code compiles and `copying` works, yet the macro cannot know it. As an error the diagnostic would reject working code with no way to opt out; as a warning it costs one false positive at worst. For the same reason `copying` is still generated when either warning fires.
+
+An initializer declared inside `#if` is the same blind spot taken one step further: it silences the check outright. Warning would be wrong wherever that branch is active, and the Fix-It would write a second initializer with the signature the first one already has.
 
 ### The access level of the generated method
 
