@@ -63,6 +63,22 @@ struct CopyingDiagnostic: DiagnosticMessage {
         message: "@Copying does not support tuple pattern bindings; declare each property separately"
     )
 
+    /// A property declares an `init` accessor, so the memberwise initializer takes it
+    /// in place of the storage it initializes.
+    ///
+    /// Copying such a type means passing the property and leaving that storage out,
+    /// and only the accessor's `@storageRestrictions` says which storage that is.
+    /// Dropping the property the way a computed one is dropped leaves the generated
+    /// call missing an argument, so it is reported instead.
+    static func initAccessorProperty(propertyName: String) -> CopyingDiagnostic {
+        CopyingDiagnostic(
+            id: "initAccessorProperty",
+            severity: .error,
+            message:
+                "@Copying does not support a property with an 'init' accessor, such as '\(propertyName)'; write 'copying' by hand for a type that declares one"
+        )
+    }
+
     /// A copyable property is named after the type it belongs to, which the generated
     /// call needs by name where the property's parameter shadows it.
     ///

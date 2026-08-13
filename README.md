@@ -192,6 +192,7 @@ The macro generates a parameter only for stored properties that can take part in
 - Applying `@Copying` to anything other than a `struct`, `class`, or `actor`
 - A copyable property declared inside `#if`, e.g. a `var inset: CGFloat` under `#if os(iOS)` (a macro cannot know which branch a build takes — declare the property unconditionally and vary its value instead)
 - A copyable property whose type expands a parameter pack, e.g. `let values: (repeat each T)` (the type may still be generic over a pack; only storing an expansion is unsupported)
+- A property with an `init` accessor, which stands in for the storage it initializes in the memberwise initializer (`@Observable` and other macros that generate one are unaffected — each macro sees the declaration as written)
 - A copyable property named after its own type, e.g. a `Money` in `struct Money`, whose parameter would shadow the type in the generated call
 - A copyable property with an opaque type, e.g. `var value: some Equatable` (in a parameter, `some P` declares a new type rather than the property's — `any P` is fine)
 

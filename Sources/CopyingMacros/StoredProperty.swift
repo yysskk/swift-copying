@@ -175,6 +175,18 @@ extension StoredProperty {
         accessLevel: AccessLevel,
         typeName: String?
     ) -> BindingOutcome {
+        // A property with an `init` accessor is not stored, yet it stands in for the
+        // storage it initializes in the memberwise initializer, so a copy would have
+        // to pass it and leave that storage out. Which storage that is only
+        // `@storageRestrictions` says, so the property is reported rather than
+        // dropped, which would leave the call missing an argument.
+        if let accessorBlock = binding.accessorBlock, declaresInitAccessor(accessorBlock),
+            let pattern = binding.pattern.as(IdentifierPatternSyntax.self)
+        {
+            let propertyName = pattern.identifier.identifier?.name ?? pattern.identifier.text
+            return .problem(CopyingDiagnostic.initAccessorProperty(propertyName: propertyName).diagnostic(at: binding))
+        }
+
         // Computed and coroutine-accessor properties are not stored.
         if let accessorBlock = binding.accessorBlock, !isStored(accessorBlock) {
             return .notCopyable
@@ -290,6 +302,15 @@ extension StoredProperty {
             }
         }
         return types.reversed()
+    }
+
+    /// Whether an accessor block declares an `init` accessor (SE-0400), which lets a
+    /// computed property take part in the memberwise initializer.
+    private static func declaresInitAccessor(_ accessorBlock: AccessorBlockSyntax) -> Bool {
+        guard case .accessors(let accessors) = accessorBlock.accessors else {
+            return false
+        }
+        return accessors.contains { $0.accessorSpecifier.tokenKind == .keyword(.`init`) }
     }
 
     /// Returns whether an accessor block belongs to a stored property.

@@ -132,6 +132,62 @@ struct DiagnosticTests {
         )
     }
 
+    @Test("Copying macro rejects a property with an init accessor")
+    func copyingMacroRejectsInitAccessorProperty() {
+        assertMacroExpansionForTesting(
+            """
+            @Copying
+            struct Angle {
+                private var degreesStorage: Double = 0
+
+                var degrees: Double {
+                    @storageRestrictions(initializes: degreesStorage)
+                    init(newValue) {
+                        degreesStorage = newValue
+                    }
+                    get {
+                        degreesStorage
+                    }
+                    set {
+                        degreesStorage = newValue
+                    }
+                }
+            }
+            """,
+            // The memberwise initializer takes `degrees` and not `degreesStorage`, so
+            // copying the properties as declared would call it with the wrong
+            // arguments.
+            expandedSource: """
+                struct Angle {
+                    private var degreesStorage: Double = 0
+
+                    var degrees: Double {
+                        @storageRestrictions(initializes: degreesStorage)
+                        init(newValue) {
+                            degreesStorage = newValue
+                        }
+                        get {
+                            degreesStorage
+                        }
+                        set {
+                            degreesStorage = newValue
+                        }
+                    }
+                }
+                """,
+            diagnostics: [
+                DiagnosticSpec(
+                    id: MessageID(domain: "CopyingMacros", id: "initAccessorProperty"),
+                    message:
+                        "@Copying does not support a property with an 'init' accessor, such as 'degrees'; write 'copying' by hand for a type that declares one",
+                    line: 5,
+                    column: 9
+                )
+            ],
+            macros: testMacros
+        )
+    }
+
     @Test("Copying macro rejects a property named after its type")
     func copyingMacroRejectsPropertyNamedAfterItsType() {
         assertMacroExpansionForTesting(
