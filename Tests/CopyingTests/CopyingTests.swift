@@ -663,6 +663,66 @@ struct CopyingTests {
         #expect(relabeled.level == 11)
     }
 
+    // A main-actor property makes the generated method of a class or an actor
+    // main-actor-isolated too, which is what lets it read the property; these compile
+    // only because it is, and so call it from the main actor.
+
+    @MainActor
+    @Test("Generated code for a class with a main-actor property compiles and works correctly")
+    func mainActorPropertyInClassCompileTest() {
+        @Copying
+        final class Document {
+            @MainActor var title: String
+            let revision: Int
+
+            init(title: String, revision: Int) {
+                self.title = title
+                self.revision = revision
+            }
+        }
+
+        let document = Document(title: "Draft", revision: 1)
+        let copied = document.copying(revision: 2)
+
+        #expect(copied.title == "Draft")
+        #expect(copied.revision == 2)
+    }
+
+    @MainActor
+    @Test("Generated code for an actor with a main-actor property compiles and works correctly")
+    func mainActorPropertyInActorCompileTest() {
+        @Copying
+        actor Session {
+            @MainActor var title: String
+            let id: Int
+
+            init(title: String, id: Int) {
+                self.title = title
+                self.id = id
+            }
+        }
+
+        let session = Session(title: "Home", id: 1)
+        let copied = session.copying(title: "Settings")
+
+        #expect(copied.title == "Settings")
+        #expect(copied.id == 1)
+    }
+
+    @Test("Generated code for a struct with a main-actor property is callable from any isolation")
+    func mainActorPropertyInStructCompileTest() {
+        @Copying
+        struct Label {
+            @MainActor var text: String
+            var size: Int
+        }
+
+        let label = Label(text: "Title", size: 12)
+        let copied = label.copying(size: 14)
+
+        #expect(copied.size == 14)
+    }
+
     #if canImport(Combine)
         @Test("Generated code copies a class with @Published properties")
         func publishedPropertyCompileTest() {
