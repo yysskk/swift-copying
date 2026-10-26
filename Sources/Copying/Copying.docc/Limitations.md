@@ -241,9 +241,10 @@ final class Document {
 
 Call it from the main actor. From elsewhere it takes `await`, which works for an `actor` and any other `Sendable` type; a non-`Sendable` class cannot hand the copy back out of the main actor, so copy one of those on the main actor. A type that is already `@MainActor` hands its isolation to the method, so the macro adds nothing there. Nor does it for a `struct`: a value type's own methods can read its main-actor-isolated stored properties synchronously (SE-0434), so the method stays callable from any isolation.
 
-Two shapes fall outside this:
+Three shapes fall outside this:
 
 - **An actor that also copies a mutable property of its own.** The method would have to be isolated to the main actor to read one property and to the actor to read the other, and it can be isolated to only one. Copy such an actor by hand, or move the main-actor state elsewhere.
+- **A `struct` whose main-actor property has a non-`Sendable` type**, such as `@MainActor var cache: Cache` for a class `Cache`. SE-0434 covers only `Sendable` values, so such a struct cannot even be initialized outside the main actor — its memberwise initializer is rejected before `copying` comes into it. Mark the struct itself `@MainActor`, which the method then inherits.
 - **A custom global actor**, such as `@DataActor var cache: Cache`. Written on a property, a global actor reads exactly like a property wrapper — only the attribute's own declaration says which it is, and a macro cannot see that declaration — so the macro does not isolate the method to it. Mark the type with the global actor instead, which the method then inherits, or write `copying` by hand.
 
 ### Property wrappers
