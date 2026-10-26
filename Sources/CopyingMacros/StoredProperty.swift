@@ -69,7 +69,9 @@ extension StoredProperty {
     static func extract(from declaration: some DeclGroupSyntax) throws -> [StoredProperty] {
         var properties: [StoredProperty] = []
         var diagnostics: [Diagnostic] = []
-        let typeName = declaration.asProtocol(NamedDeclSyntax.self).map { $0.name.identifier?.name ?? $0.name.text }
+        let typeName = declaration.asProtocol((any NamedDeclSyntax).self).map {
+            $0.name.identifier?.name ?? $0.name.text
+        }
 
         for member in declaration.memberBlock.members {
             if let ifConfig = member.decl.as(IfConfigDeclSyntax.self) {

@@ -45,6 +45,22 @@ You can check without modifying files the same way CI does:
 swift format lint --strict --recursive Sources Tests Package.swift
 ```
 
+## Language features
+
+Every target is built with the upcoming features listed in `swiftSettings` at the top of
+`Package.swift`: `ExistentialAny`, `InternalImportsByDefault`, and
+`MemberImportVisibility`. In practice that means:
+
+- Spell an existential with `any`, including in a metatype: `[any Macro.Type]`,
+  `asProtocol((any NamedDeclSyntax).self)`.
+- Imports are `internal`, so keep the macro implementation `internal` too. Nothing outside
+  `CopyingMacros` refers to its types, and the tests reach them with
+  `@testable import CopyingMacros`.
+- Import every module whose members a file uses, even when another import happens to
+  re-export it.
+
+A new target should pass `swiftSettings: swiftSettings` like the existing ones.
+
 ## Tests
 
 Every behavior change should be covered by both kinds of test:

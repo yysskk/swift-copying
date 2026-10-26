@@ -1,11 +1,12 @@
-import CopyingMacros
 import SwiftSyntax
 import SwiftSyntaxMacroExpansion
 import SwiftSyntaxMacros
 import SwiftSyntaxMacrosGenericTestSupport
 import Testing
 
-let testMacros: [String: Macro.Type] = [
+@testable import CopyingMacros
+
+let testMacros: [String: any Macro.Type] = [
     "Copying": CopyingMacro.self
 ]
 
@@ -29,7 +30,7 @@ func assertMacroExpansionForTesting(
     _ originalSource: String,
     expandedSource: String,
     diagnostics: [DiagnosticSpec] = [],
-    macros: [String: Macro.Type],
+    macros: [String: any Macro.Type],
     applyFixIts: [String]? = nil,
     fixedSource: String? = nil,
     fileID: StaticString = #fileID, filePath: StaticString = #filePath,

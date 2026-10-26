@@ -3,6 +3,18 @@
 import CompilerPluginSupport
 import PackageDescription
 
+// Upcoming language features every target adopts ahead of the language mode that makes
+// them the default, so the code already reads the way that mode will require.
+let swiftSettings: [SwiftSetting] = [
+    // SE-0335: spell an existential `any P` rather than a bare `P`.
+    .enableUpcomingFeature("ExistentialAny"),
+    // SE-0409: an import is `internal` unless declared otherwise, so a dependency
+    // never leaks into a target's public interface by accident.
+    .enableUpcomingFeature("InternalImportsByDefault"),
+    // SE-0444: a member is visible only through a module the file imports itself.
+    .enableUpcomingFeature("MemberImportVisibility"),
+]
+
 let package = Package(
     name: "swift-copying",
     platforms: [
@@ -34,21 +46,24 @@ let package = Package(
                 .product(name: "SwiftDiagnostics", package: "swift-syntax"),
                 .product(name: "SwiftBasicFormat", package: "swift-syntax"),
                 .product(name: "SwiftSyntaxBuilder", package: "swift-syntax"),
-            ]
+            ],
+            swiftSettings: swiftSettings
         ),
-        .target(name: "Copying", dependencies: ["CopyingMacros"]),
-        .executableTarget(name: "CopyingClient", dependencies: ["Copying"]),
+        .target(name: "Copying", dependencies: ["CopyingMacros"], swiftSettings: swiftSettings),
+        .executableTarget(name: "CopyingClient", dependencies: ["Copying"], swiftSettings: swiftSettings),
         .testTarget(
             name: "CopyingMacrosTests",
             dependencies: [
                 "CopyingMacros",
                 .product(name: "SwiftDiagnostics", package: "swift-syntax"),
                 .product(name: "SwiftSyntaxMacrosGenericTestSupport", package: "swift-syntax"),
-            ]
+            ],
+            swiftSettings: swiftSettings
         ),
         .testTarget(
             name: "CopyingTests",
-            dependencies: ["Copying"]
+            dependencies: ["Copying"],
+            swiftSettings: swiftSettings
         ),
     ]
 )
