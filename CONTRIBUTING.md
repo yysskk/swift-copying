@@ -30,6 +30,7 @@ swift test    # run the test suite
 - `Sources/CopyingClient` — a small executable that exercises the macro end to end.
 - `Tests/CopyingMacrosTests` — macro **expansion** tests (assert the generated source and diagnostics).
 - `Tests/CopyingTests` — **runtime** tests (assert that the generated code compiles and behaves correctly).
+- `Tests/CopyingDefaultIsolationTests` — runtime tests in a module built with `.defaultIsolation(MainActor.self)`, the setting a new app target uses.
 
 ## Formatting
 

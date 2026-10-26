@@ -122,6 +122,18 @@ let counter = Counter(id: 1, value: 0)
 let advanced = await counter.copying(value: 10)
 ```
 
+### Default actor isolation
+
+In a module built with `.defaultIsolation(MainActor.self)`, as a new app target is, `copying` takes its type's isolation, which is the main actor. Declare the type `nonisolated` to copy it from anywhere:
+
+```swift
+@Copying
+nonisolated struct Point {
+    var x: Double
+    var y: Double
+}
+```
+
 ### Optional properties
 
 Every parameter defaults to `nil`, meaning "keep the current value". For an optional property, the parameter becomes a double optional so you can still reset it:
