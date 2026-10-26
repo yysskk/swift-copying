@@ -69,7 +69,12 @@ let package = Package(
         ),
         .testTarget(
             name: "CopyingTests",
-            dependencies: ["Copying"],
+            dependencies: [
+                "Copying",
+                // Only so a test can ask `canImport(SwiftSyntax601)` which swift-syntax the
+                // macro was built against, for syntax an older release cannot parse.
+                .product(name: "SwiftSyntax", package: "swift-syntax"),
+            ],
             swiftSettings: swiftSettings
         ),
         // The runtime tests again, in a module whose declarations default to the main

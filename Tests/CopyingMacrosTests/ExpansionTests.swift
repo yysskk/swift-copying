@@ -675,4 +675,73 @@ struct ExpansionTests {
             macros: testMacros
         )
     }
+
+    // A value generic parameter (SE-0452) parses from swift-syntax 601 on; an older one
+    // does not recognize the `let` that introduces it.
+    #if canImport(SwiftSyntax601)
+        @Test("Copying macro with a value generic parameter")
+        func copyingMacroWithValueGenericParameter() {
+            assertMacroExpansionForTesting(
+                """
+                @Copying
+                struct Grid<let columns: Int, Element> {
+                    var cells: [Element]
+                }
+                """,
+                expandedSource: """
+                    struct Grid<let columns: Int, Element> {
+                        var cells: [Element]
+
+                        /// Creates a copy of this instance with the specified properties modified.
+                        /// - Parameters:
+                        ///   - cells: The new value for `cells`, or `nil` to keep the current value.
+                        /// - Returns: A new instance with the specified modifications.
+                        func copying(
+                            cells: [Element]? = nil
+                        ) -> Grid<columns, Element> {
+                            Grid(
+                                cells: cells ?? self.cells
+                            )
+                        }
+                    }
+                    """,
+                macros: testMacros
+            )
+        }
+
+    #endif
+
+    // The `[n of T]` sugar for `InlineArray` (SE-0483) parses as a type from
+    // swift-syntax 602 on; an older one reads it as something else entirely.
+    #if canImport(SwiftSyntax602)
+        @Test("Copying macro with an inline array property")
+        func copyingMacroWithInlineArrayProperty() {
+            assertMacroExpansionForTesting(
+                """
+                @Copying
+                struct Buffer<let count: Int> {
+                    var storage: [count of Int]
+                }
+                """,
+                expandedSource: """
+                    struct Buffer<let count: Int> {
+                        var storage: [count of Int]
+
+                        /// Creates a copy of this instance with the specified properties modified.
+                        /// - Parameters:
+                        ///   - storage: The new value for `storage`, or `nil` to keep the current value.
+                        /// - Returns: A new instance with the specified modifications.
+                        func copying(
+                            storage: [count of Int]? = nil
+                        ) -> Buffer<count> {
+                            Buffer(
+                                storage: storage ?? self.storage
+                            )
+                        }
+                    }
+                    """,
+                macros: testMacros
+            )
+        }
+    #endif
 }

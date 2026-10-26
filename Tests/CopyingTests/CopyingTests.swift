@@ -256,6 +256,27 @@ struct CopyingTests {
         #expect(copied.count == 1)
     }
 
+    // A macro built against swift-syntax 600 cannot parse a value generic parameter,
+    // and value generics and `InlineArray` need the Swift 6.2 runtime on Apple platforms.
+    #if canImport(SwiftSyntax602)
+        @available(macOS 26.0, iOS 26.0, tvOS 26.0, watchOS 26.0, visionOS 26.0, *)
+        @Test("Generated code for a struct with a value generic parameter compiles and works correctly")
+        func valueGenericCompileTest() {
+            @Copying
+            struct Buffer<let count: Int> {
+                var storage: [count of Int]
+                var label: String
+            }
+
+            let buffer = Buffer<3>(storage: [1, 2, 3], label: "first")
+            let copied = buffer.copying(storage: [4, 5, 6])
+
+            #expect(copied.storage[0] == 4)
+            #expect(copied.storage[2] == 6)
+            #expect(copied.label == "first")
+        }
+    #endif
+
     @Test("Generated code for generic class compiles and works correctly")
     func genericClassCompileTest() {
         @Copying

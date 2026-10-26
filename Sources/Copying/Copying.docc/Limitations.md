@@ -404,3 +404,17 @@ struct Buffer: ~Copyable {
 ```
 
 A *noncopyable property* is a different matter, and one the macro cannot see. The generated call reads the property to pass it on, which consumes a noncopyable value, so the code does not compile — the same blind spot as a wrapper without `init(wrappedValue:)`: whether a type is copyable is not something the property's spelling says.
+
+### Value generics and inline arrays
+
+A type generic over a value (SE-0452) is copied like any other generic type, and a property spelled with the `[n of T]` sugar for `InlineArray` (SE-0483) like any other property:
+
+```swift
+@Copying
+struct Buffer<let count: Int> {
+    var storage: [count of Int]
+}
+// Generates 'func copying(storage: [count of Int]? = nil) -> Buffer<count>'.
+```
+
+The macro reads both through swift-syntax, which parses a value generic parameter from release 601 and the inline array sugar from release 602. When the package graph resolves an older swift-syntax, as another dependency pinning it may force, the generated code for such a type does not compile. The Swift 6.2 toolchain that value generics need resolves a recent enough swift-syntax unless something pins it lower.
