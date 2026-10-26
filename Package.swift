@@ -66,6 +66,14 @@ let package = Package(
             dependencies: ["Copying"],
             swiftSettings: swiftSettings
         ),
+        // The runtime tests again, in a module whose declarations default to the main
+        // actor (SE-0466) the way a new app target's do, so the generated code is shown
+        // to compile under that setting as well as under the default one.
+        .testTarget(
+            name: "CopyingDefaultIsolationTests",
+            dependencies: ["Copying"],
+            swiftSettings: swiftSettings + [.defaultIsolation(MainActor.self)]
+        ),
     ]
 )
 

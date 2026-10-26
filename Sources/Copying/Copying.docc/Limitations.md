@@ -250,6 +250,36 @@ Three shapes fall outside this:
 - **A `struct` whose main-actor property has a non-`Sendable` type**, such as `@MainActor var cache: Cache` for a class `Cache`. SE-0434 covers only `Sendable` values, so such a struct cannot even be initialized outside the main actor — its memberwise initializer is rejected before `copying` comes into it. Mark the struct itself `@MainActor`, which the method then inherits.
 - **A custom global actor**, such as `@DataActor var cache: Cache`. Written on a property, a global actor reads exactly like a property wrapper — only the attribute's own declaration says which it is, and a macro cannot see that declaration — so the macro does not isolate the method to it. Mark the type with the global actor instead, which the method then inherits, or write `copying` by hand.
 
+### Default actor isolation
+
+A module built with `.defaultIsolation(MainActor.self)` (SE-0466), as a new app target is, isolates every declaration without an isolation of its own to the main actor. A type annotated with `@Copying` is one of those declarations, and its `copying` method takes the type's isolation like any other member, so it is callable only on the main actor:
+
+```swift
+@Copying
+struct Point {
+    var x: Double
+    var y: Double
+}
+
+nonisolated func movedRight(_ point: Point) -> Point {
+    point.copying(x: point.x + 1)
+    // ❌ call to main actor-isolated instance method 'copying(x:y:)' in a
+    //    synchronous nonisolated context
+}
+```
+
+To copy a value away from the main actor, declare the type `nonisolated` (SE-0449). The method then has no isolation either, without anything for the macro to be told:
+
+```swift
+@Copying
+nonisolated struct Point {
+    var x: Double
+    var y: Double
+}
+```
+
+The rules in <doc:Limitations#Main-actor-properties> apply unchanged inside a `nonisolated` type: a `class` that copies a `@MainActor` property still gets a `@MainActor` method, and a `struct` does not need one.
+
 ### Property wrappers
 
 A wrapped property is copied like any other: the macro reads the property's declared — that is, wrapped — type and ignores the attribute.
