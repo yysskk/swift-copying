@@ -37,6 +37,42 @@ struct StoredProperty {
 }
 
 extension StoredProperty {
+    /// Whether the property's type is spelled as an optional, which makes its `copying`
+    /// parameter a double optional: the bare `nil` literal keeps the current value, and
+    /// only `.some(nil)` resets the property to `nil`.
+    ///
+    /// `T?`, `T!`, and `Optional<T>` (qualified as `Swift.Optional<T>` or not) are
+    /// recognized, with any parentheses around them. A typealias that names an optional
+    /// is not, since a macro sees only how a type is spelled; such a property still
+    /// copies correctly, and only the documentation the macro writes leaves out how to
+    /// reset it.
+    var isOptional: Bool {
+        Self.spellsOptional(type)
+    }
+
+    /// Whether `type` is spelled as an optional — see ``isOptional``.
+    private static func spellsOptional(_ type: TypeSyntax) -> Bool {
+        // `(T?)` is a one-element tuple in the syntax tree, yet the type is `T?` itself.
+        if let tuple = type.as(TupleTypeSyntax.self), tuple.elements.count == 1, let element = tuple.elements.first,
+            element.firstName == nil, element.ellipsis == nil
+        {
+            return spellsOptional(element.type)
+        }
+        if type.is(OptionalTypeSyntax.self) || type.is(ImplicitlyUnwrappedOptionalTypeSyntax.self) {
+            return true
+        }
+        if let identifier = type.as(IdentifierTypeSyntax.self) {
+            return identifier.name.text == "Optional" && identifier.genericArgumentClause != nil
+        }
+        if let member = type.as(MemberTypeSyntax.self) {
+            return member.baseType.trimmedDescription == "Swift" && member.name.text == "Optional"
+                && member.genericArgumentClause != nil
+        }
+        return false
+    }
+}
+
+extension StoredProperty {
     /// Extracts every stored property that should participate in a copy from the
     /// members of the annotated declaration.
     ///

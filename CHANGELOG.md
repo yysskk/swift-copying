@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Document how to reset an optional property in the generated `copying` method. Its parameter is a double optional, so the bare `nil` literal a reader reaches for keeps the value, yet the documentation said only "or `nil` to keep the current value" and Quick Help never mentioned `.some(nil)`. The parameter of a property spelled `T?`, `T!`, or `Optional<T>`, parenthesized or not, now adds "pass `.some(nil)` to reset it to `nil`". A typealias for an optional is not recognized, since a macro sees only the spelling, and is documented as before.
 - Build every target with the upcoming language features `ExistentialAny` (SE-0335), `InternalImportsByDefault` (SE-0409), and `MemberImportVisibility` (SE-0444), so the code already reads the way a future language mode will require. Consumers are unaffected: these settings apply only to this package's own targets.
 - Declare the macro implementation type `CopyingMacro` `internal`. The compiler reaches it through the plugin in the same module and `#externalMacro` names it by string, so it was never usable from outside — `CopyingMacros` is not a product — and being `public` only stood in the way of internal imports.
 

@@ -46,6 +46,14 @@ config.copying(timeout: newTimeout)  // timeout == nil
 
 > Important: Because the bare `nil` literal means "keep", you cannot reset an optional with `copying(timeout: nil)`. Use `.some(nil)`, or pass a value of the property's own optional type.
 
+The documentation `copying` carries says so too, so Quick Help shows it at the call site. Each optional property's parameter reads:
+
+```swift
+///   - timeout: The new value for `timeout`, or `nil` to keep the current value; pass `.some(nil)` to reset it to `nil`.
+```
+
+The macro recognizes an optional by how its type is spelled — `T?`, `T!`, or `Optional<T>`, parenthesized or not. A property typed with a typealias for an optional copies exactly the same way, but its parameter is documented like a non-optional one.
+
 ### Implicitly unwrapped optionals
 
 A property declared `T!` is an optional as well, so `copying` treats it as one and everything above applies unchanged:

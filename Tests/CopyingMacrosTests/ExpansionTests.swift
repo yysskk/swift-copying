@@ -147,7 +147,7 @@ struct ExpansionTests {
                     /// Creates a copy of this instance with the specified properties modified.
                     /// - Parameters:
                     ///   - name: The new value for `name`, or `nil` to keep the current value.
-                    ///   - value: The new value for `value`, or `nil` to keep the current value.
+                    ///   - value: The new value for `value`, or `nil` to keep the current value; pass `.some(nil)` to reset it to `nil`.
                     /// - Returns: A new instance with the specified modifications.
                     func copying(
                         name: (String)? = nil,
@@ -156,6 +156,53 @@ struct ExpansionTests {
                         Config(
                             name: name ?? self.name,
                             value: value ?? self.value
+                        )
+                    }
+                }
+                """,
+            macros: testMacros
+        )
+    }
+
+    // Only the spelling says a type is optional, so a typealias for one is documented
+    // like any other type, while its parameter is still a double optional.
+    @Test("Copying macro documents how to reset every spelling of an optional property")
+    func copyingMacroDocumentsOptionalSpellings() {
+        assertMacroExpansionForTesting(
+            """
+            @Copying
+            struct Config {
+                let timeout: Optional<Int>
+                let retries: Swift.Optional<Int>
+                let jitter: (Int?)
+                let delay: MaybeInt
+            }
+            """,
+            expandedSource: """
+                struct Config {
+                    let timeout: Optional<Int>
+                    let retries: Swift.Optional<Int>
+                    let jitter: (Int?)
+                    let delay: MaybeInt
+
+                    /// Creates a copy of this instance with the specified properties modified.
+                    /// - Parameters:
+                    ///   - timeout: The new value for `timeout`, or `nil` to keep the current value; pass `.some(nil)` to reset it to `nil`.
+                    ///   - retries: The new value for `retries`, or `nil` to keep the current value; pass `.some(nil)` to reset it to `nil`.
+                    ///   - jitter: The new value for `jitter`, or `nil` to keep the current value; pass `.some(nil)` to reset it to `nil`.
+                    ///   - delay: The new value for `delay`, or `nil` to keep the current value.
+                    /// - Returns: A new instance with the specified modifications.
+                    func copying(
+                        timeout: (Optional<Int>)? = nil,
+                        retries: (Swift.Optional<Int>)? = nil,
+                        jitter: ((Int?))? = nil,
+                        delay: (MaybeInt)? = nil
+                    ) -> Config {
+                        Config(
+                            timeout: timeout ?? self.timeout,
+                            retries: retries ?? self.retries,
+                            jitter: jitter ?? self.jitter,
+                            delay: delay ?? self.delay
                         )
                     }
                 }
@@ -186,7 +233,7 @@ struct ExpansionTests {
                     /// Creates a copy of this instance with the specified properties modified.
                     /// - Parameters:
                     ///   - title: The new value for `title`, or `nil` to keep the current value.
-                    ///   - subtitle: The new value for `subtitle`, or `nil` to keep the current value.
+                    ///   - subtitle: The new value for `subtitle`, or `nil` to keep the current value; pass `.some(nil)` to reset it to `nil`.
                     /// - Returns: A new instance with the specified modifications.
                     func copying(
                         title: (String)? = nil,
@@ -222,7 +269,7 @@ struct ExpansionTests {
 
                     /// Creates a copy of this instance with the specified properties modified.
                     /// - Parameters:
-                    ///   - subtitle: The new value for `subtitle`, or `nil` to keep the current value.
+                    ///   - subtitle: The new value for `subtitle`, or `nil` to keep the current value; pass `.some(nil)` to reset it to `nil`.
                     /// - Returns: A new instance with the specified modifications.
                     func copying(
                         subtitle: (String?)? = nil
