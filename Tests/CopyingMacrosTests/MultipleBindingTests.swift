@@ -199,8 +199,8 @@ struct MultipleBindingTests {
 
                     /// Creates a copy of this instance with the specified properties modified.
                     /// - Parameters:
-                    ///   - title: The new value for `title`, or `nil` to keep the current value.
-                    ///   - subtitle: The new value for `subtitle`, or `nil` to keep the current value.
+                    ///   - title: The new value for `title`, or `nil` to keep the current value; pass `.some(nil)` to reset it to `nil`.
+                    ///   - subtitle: The new value for `subtitle`, or `nil` to keep the current value; pass `.some(nil)` to reset it to `nil`.
                     /// - Returns: A new instance with the specified modifications.
                     func copying(
                         title: (String?)? = nil,

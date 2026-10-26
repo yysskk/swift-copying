@@ -291,7 +291,7 @@ struct PropertySelectionTests {
                     /// Creates a copy of this instance with the specified properties modified.
                     /// - Parameters:
                     ///   - name: The new value for `name`, or `nil` to keep the current value.
-                    ///   - next: The new value for `next`, or `nil` to keep the current value.
+                    ///   - next: The new value for `next`, or `nil` to keep the current value; pass `.some(nil)` to reset it to `nil`.
                     /// - Returns: A new instance with the specified modifications.
                     func copying(
                         name: (String)? = nil,

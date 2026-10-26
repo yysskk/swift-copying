@@ -21,12 +21,7 @@ enum CopyingMethodRenderer {
         // Documentation names a parameter as its label, which carries no escaping:
         // backticks around it would leave the parameter unmatched and the code span
         // reading as a symbol link.
-        let documentation =
-            storedProperties
-            .map {
-                "///   - \($0.argumentLabel): The new value for `\($0.argumentLabel)`, or `nil` to keep the current value."
-            }
-            .joined(separator: "\n")
+        let documentation = storedProperties.map(parameterDocumentation).joined(separator: "\n")
         let parameters =
             storedProperties
             .map { "    \($0.name): (\($0.parameterType))? = nil" }
@@ -51,6 +46,17 @@ enum CopyingMethodRenderer {
                 )
             }
             """
+    }
+
+    /// The line documenting the `copying` parameter for `property`.
+    ///
+    /// For an optional property it also says how to reset the value, because the
+    /// parameter is then a double optional and the bare `nil` literal a reader would
+    /// reach for means "keep" instead — see the Optional Properties article in `Copying`.
+    private static func parameterDocumentation(for property: StoredProperty) -> String {
+        let label = property.argumentLabel
+        let line = "///   - \(label): The new value for `\(label)`, or `nil` to keep the current value"
+        return property.isOptional ? line + "; pass `.some(nil)` to reset it to `nil`." : line + "."
     }
 
     /// Returns the type's name with its generic parameters reattached as arguments
