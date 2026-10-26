@@ -39,10 +39,15 @@ struct CopyingDiagnostic: DiagnosticMessage {
     )
 
     /// The declaration has no stored property that can participate in a copy.
+    ///
+    /// The message names the members a copy skips, since a type that trips it usually
+    /// declares only those. A property left without a type annotation is reported on
+    /// its own instead, so this never fires for one.
     static let noStoredProperties = CopyingDiagnostic(
         id: "noStoredProperties",
         severity: .error,
-        message: "@Copying requires at least one stored property with an explicit type annotation"
+        message:
+            "@Copying requires at least one stored property that 'copying' can replace; computed, 'static', and 'lazy' properties and 'let' constants with an initial value are not copied"
     )
 
     /// A copyable stored property lacks the explicit type annotation the macro

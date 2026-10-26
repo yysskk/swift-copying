@@ -97,7 +97,37 @@ struct DiagnosticTests {
             diagnostics: [
                 DiagnosticSpec(
                     id: MessageID(domain: "CopyingMacros", id: "noStoredProperties"),
-                    message: "@Copying requires at least one stored property with an explicit type annotation",
+                    message:
+                        "@Copying requires at least one stored property that 'copying' can replace; computed, 'static', and 'lazy' properties and 'let' constants with an initial value are not copied",
+                    line: 1,
+                    column: 1
+                )
+            ],
+            macros: testMacros
+        )
+    }
+
+    @Test("Copying macro rejects a type whose only stored properties a copy skips")
+    func copyingMacroRejectsTypeWithOnlySkippedStoredProperties() {
+        assertMacroExpansionForTesting(
+            """
+            @Copying
+            struct Session {
+                let id: Int = 0
+                lazy var cache: [String] = []
+            }
+            """,
+            expandedSource: """
+                struct Session {
+                    let id: Int = 0
+                    lazy var cache: [String] = []
+                }
+                """,
+            diagnostics: [
+                DiagnosticSpec(
+                    id: MessageID(domain: "CopyingMacros", id: "noStoredProperties"),
+                    message:
+                        "@Copying requires at least one stored property that 'copying' can replace; computed, 'static', and 'lazy' properties and 'let' constants with an initial value are not copied",
                     line: 1,
                     column: 1
                 )
@@ -504,7 +534,8 @@ struct DiagnosticTests {
             diagnostics: [
                 DiagnosticSpec(
                     id: MessageID(domain: "CopyingMacros", id: "noStoredProperties"),
-                    message: "@Copying requires at least one stored property with an explicit type annotation",
+                    message:
+                        "@Copying requires at least one stored property that 'copying' can replace; computed, 'static', and 'lazy' properties and 'let' constants with an initial value are not copied",
                     line: 1,
                     column: 1
                 )
