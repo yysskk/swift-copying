@@ -160,8 +160,8 @@ generates the following method inside `Person`:
 
 ```swift
 func copying(
-    name: (String)? = nil,
-    age: (Int)? = nil
+    name: String? = nil,
+    age: Int? = nil
 ) -> Person {
     Person(
         name: name ?? self.name,
@@ -169,6 +169,8 @@ func copying(
     )
 }
 ```
+
+Each parameter is the property's type made optional, written the way you would write it by hand: `Int?` for `Int`, `Int??` for `Int?`. Parentheses appear only where the `?` would otherwise bind to part of the type, as in `(() -> Void)?` or `(any Error)?`.
 
 ## What gets copied
 

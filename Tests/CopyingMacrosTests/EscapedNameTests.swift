@@ -25,7 +25,7 @@ struct EscapedNameTests {
                     ///   - café: The new value for `café`, or `nil` to keep the current value.
                     /// - Returns: A new instance with the specified modifications.
                     func copying(
-                        `café`: (String)? = nil
+                        `café`: String? = nil
                     ) -> Menu {
                         Menu(
                             café: `café` ?? self.`café`
@@ -58,7 +58,7 @@ struct EscapedNameTests {
                         ///   - the value: The new value for `the value`, or `nil` to keep the current value.
                         /// - Returns: A new instance with the specified modifications.
                         func copying(
-                            `the value`: (Int)? = nil
+                            `the value`: Int? = nil
                         ) -> Reading {
                             Reading(
                                 `the value`: `the value` ?? self.`the value`
@@ -89,7 +89,7 @@ struct EscapedNameTests {
                     ///   - inout: The new value for `inout`, or `nil` to keep the current value.
                     /// - Returns: A new instance with the specified modifications.
                     func copying(
-                        `inout`: (Bool)? = nil
+                        `inout`: Bool? = nil
                     ) -> Parameter {
                         Parameter(
                             `inout`: `inout` ?? self.`inout`

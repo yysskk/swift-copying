@@ -31,8 +31,8 @@ struct PropertySelectionTests {
                     ///   - height: The new value for `height`, or `nil` to keep the current value.
                     /// - Returns: A new instance with the specified modifications.
                     func copying(
-                        width: (Double)? = nil,
-                        height: (Double)? = nil
+                        width: Double? = nil,
+                        height: Double? = nil
                     ) -> Rectangle {
                         Rectangle(
                             width: width ?? self.width,
@@ -81,7 +81,7 @@ struct PropertySelectionTests {
                     ///   - name: The new value for `name`, or `nil` to keep the current value.
                     /// - Returns: A new instance with the specified modifications.
                     func copying(
-                        name: (String)? = nil
+                        name: String? = nil
                     ) -> Model {
                         Model(
                             name: name ?? self.name
@@ -113,7 +113,7 @@ struct PropertySelectionTests {
                     ///   - value: The new value for `value`, or `nil` to keep the current value.
                     /// - Returns: A new instance with the specified modifications.
                     func copying(
-                        value: (Int)? = nil
+                        value: Int? = nil
                     ) -> Counter {
                         Counter(
                             value: value ?? self.value
@@ -147,7 +147,7 @@ struct PropertySelectionTests {
                     ///   - amount: The new value for `amount`, or `nil` to keep the current value.
                     /// - Returns: A new instance with the specified modifications.
                     func copying(
-                        amount: (Int)? = nil
+                        amount: Int? = nil
                     ) -> Money {
                         Money(
                             amount: amount ?? self.amount
@@ -193,7 +193,7 @@ struct PropertySelectionTests {
                     ///   - name: The new value for `name`, or `nil` to keep the current value.
                     /// - Returns: A new instance with the specified modifications.
                     func copying(
-                        name: (String)? = nil
+                        name: String? = nil
                     ) -> Settings {
                         Settings(
                             name: name ?? self.name
@@ -225,7 +225,7 @@ struct PropertySelectionTests {
                     ///   - value: The new value for `value`, or `nil` to keep the current value.
                     /// - Returns: A new instance with the specified modifications.
                     func copying(
-                        value: (Int)? = nil
+                        value: Int? = nil
                     ) -> Counter {
                         Counter(
                             value: value ?? self.value
@@ -257,7 +257,7 @@ struct PropertySelectionTests {
                     ///   - name: The new value for `name`, or `nil` to keep the current value.
                     /// - Returns: A new instance with the specified modifications.
                     func copying(
-                        name: (String)? = nil
+                        name: String? = nil
                     ) -> DataStore {
                         DataStore(
                             name: name ?? self.name
@@ -294,8 +294,8 @@ struct PropertySelectionTests {
                     ///   - next: The new value for `next`, or `nil` to keep the current value; pass `.some(nil)` to reset it to `nil`.
                     /// - Returns: A new instance with the specified modifications.
                     func copying(
-                        name: (String)? = nil,
-                        next: (Node?)? = nil
+                        name: String? = nil,
+                        next: Node?? = nil
                     ) -> Node {
                         Node(
                             name: name ?? self.name,
@@ -367,8 +367,8 @@ struct PropertySelectionTests {
                     ///   - label: The new value for `label`, or `nil` to keep the current value.
                     /// - Returns: A new instance with the specified modifications.
                     func copying(
-                        origin: (Node)? = nil,
-                        label: (String)? = nil
+                        origin: Node? = nil,
+                        label: String? = nil
                     ) -> Edge {
                         Edge(
                             origin: origin ?? self.origin,
@@ -407,8 +407,8 @@ struct PropertySelectionTests {
                     ///   - name: The new value for `name`, or `nil` to keep the current value.
                     /// - Returns: A new instance with the specified modifications.
                     func copying(
-                        code: (String)? = nil,
-                        name: (String)? = nil
+                        code: String? = nil,
+                        name: String? = nil
                     ) -> Settings {
                         Settings(
                             code: code ?? self.code,
@@ -445,8 +445,8 @@ struct PropertySelectionTests {
                     ///   - label: The new value for `label`, or `nil` to keep the current value.
                     /// - Returns: A new instance with the specified modifications.
                     func copying(
-                        level: (Int)? = nil,
-                        label: (String)? = nil
+                        level: Int? = nil,
+                        label: String? = nil
                     ) -> Volume {
                         Volume(
                             level: level ?? self.level,
@@ -487,7 +487,7 @@ struct PropertySelectionTests {
                     ///   - title: The new value for `title`, or `nil` to keep the current value.
                     /// - Returns: A new instance with the specified modifications.
                     func copying(
-                        title: (String)? = nil
+                        title: String? = nil
                     ) -> Screen {
                         Screen(
                             title: title ?? self.title
@@ -530,7 +530,7 @@ struct PropertySelectionTests {
                     ///   - value: The new value for `value`, or `nil` to keep the current value.
                     /// - Returns: A new instance with the specified modifications.
                     func copying(
-                        value: (Int)? = nil
+                        value: Int? = nil
                     ) -> Counter {
                         Counter(
                             value: value ?? self.value
