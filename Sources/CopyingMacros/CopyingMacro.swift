@@ -79,6 +79,7 @@ public struct CopyingMacro: MemberMacro {
                 typeName: target.typeName,
                 genericParameterClause: target.genericParameterClause,
                 accessLevel: accessLevel,
+                isolation: MethodIsolation(forMethodOf: declaration, copying: storedProperties),
                 storedProperties: storedProperties
             )
         ]

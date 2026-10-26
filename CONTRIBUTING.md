@@ -23,6 +23,7 @@ swift test    # run the test suite
   - `StoredProperty.swift` — selecting the copyable stored properties and reporting problematic ones.
   - `InitializerRequirement.swift` — the initializer the generated method calls, and whether the declaration offers one.
   - `CopyingMethodRenderer.swift` — rendering the generated `copying` method.
+  - `MethodIsolation.swift` — the actor isolation the generated method carries.
   - `DeclModifiers.swift` — shared queries on a declaration's modifier list.
   - `CopyingDiagnostic.swift` — the diagnostics the macro emits.
   - `CopyingFixItMessage.swift` — the Fix-Its offered alongside them.

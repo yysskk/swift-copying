@@ -15,6 +15,9 @@ struct StoredProperty {
     /// The level the property can be read at, which caps the level of the members the
     /// macro generates — see ``AccessLevel/forGeneratedMembers(ofTypeWith:copying:)``.
     let accessLevel: AccessLevel
+    /// Whether the property is declared `@MainActor`, which can require the generated
+    /// method to be isolated to the main actor — see ``MethodIsolation``.
+    let isMainActorIsolated: Bool
 
     /// The type the `copying` parameter wraps in an optional.
     ///
@@ -59,7 +62,7 @@ extension StoredProperty {
     ///   which a macro cannot know — see `conditionalDiagnostics(in:)`.
     /// - A property the generated code cannot express: one whose type expands a
     ///   parameter pack or hides behind `some`, and one named after the type itself.
-    ///   See `outcome(of:declaredType:isLet:accessLevel:typeName:)`.
+    ///   See `outcome(of:declaredType:isLet:accessLevel:isMainActorIsolated:typeName:)`.
     ///
     /// - Throws: A ``SwiftDiagnostics/DiagnosticsError`` carrying every offending
     ///   binding, so a single compilation reports them all at once.
@@ -131,6 +134,7 @@ extension StoredProperty {
         // The modifiers sit on the declaration, so every binding it introduces —
         // `private let width, height: Int` declares two — shares its access level.
         let accessLevel = AccessLevel(ofPropertyWith: variable.modifiers)
+        let isMainActorIsolated = variable.attributes.containsMainActor
         let isLet = variable.bindingSpecifier.tokenKind == .keyword(.let)
         return zip(variable.bindings, declaredTypes(in: variable.bindings)).map { binding, declaredType in
             let outcome = outcome(
@@ -138,6 +142,7 @@ extension StoredProperty {
                 declaredType: declaredType,
                 isLet: isLet,
                 accessLevel: accessLevel,
+                isMainActorIsolated: isMainActorIsolated,
                 typeName: typeName
             )
             return (binding, outcome)
@@ -167,12 +172,14 @@ extension StoredProperty {
 
     /// Classifies one binding of a `var`/`let` declaration, given the type it spells
     /// out (see `declaredTypes(in:)`), whether the declaration binds constants, the
-    /// level the declaration can be read at, and the name of the type it belongs to.
+    /// level the declaration can be read at, whether it is isolated to the main actor,
+    /// and the name of the type it belongs to.
     private static func outcome(
         of binding: PatternBindingSyntax,
         declaredType: TypeSyntax?,
         isLet: Bool,
         accessLevel: AccessLevel,
+        isMainActorIsolated: Bool,
         typeName: String?
     ) -> BindingOutcome {
         // A property with an `init` accessor is not stored, yet it stands in for the
@@ -253,7 +260,8 @@ extension StoredProperty {
                 name: pattern.identifier.text,
                 argumentLabel: pattern.identifier.identifier?.name ?? pattern.identifier.text,
                 type: declaredType.trimmed,
-                accessLevel: accessLevel
+                accessLevel: accessLevel,
+                isMainActorIsolated: isMainActorIsolated
             )
         )
     }
