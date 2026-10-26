@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Build every target with the upcoming language features `ExistentialAny` (SE-0335), `InternalImportsByDefault` (SE-0409), and `MemberImportVisibility` (SE-0444), so the code already reads the way a future language mode will require. Consumers are unaffected: these settings apply only to this package's own targets.
+- Declare the macro implementation type `CopyingMacro` `internal`. The compiler reaches it through the plugin in the same module and `#externalMacro` names it by string, so it was never usable from outside — `CopyingMacros` is not a product — and being `public` only stood in the way of internal imports.
+
 ### Fixed
 
 - Isolate the generated `copying` method to the main actor when a `class` or `actor` copies a property declared `@MainActor`. The method had no isolation of its own, so reading such a property failed under Swift 6 with "main actor-isolated property can not be referenced from a nonisolated autoclosure", pointing inside generated code. The method is now marked `@MainActor` instead. A type that is already `@MainActor` hands its isolation to the method, and a `struct` needs none, since a value type's own methods can read its main-actor-isolated stored properties synchronously; neither gets the attribute. A custom global actor is not recognized, because on a property it reads exactly like a property wrapper.

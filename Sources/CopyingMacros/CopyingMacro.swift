@@ -10,8 +10,13 @@ import SwiftSyntaxMacros
 /// the copyable properties and reports problematic ones) and
 /// ``CopyingMethodRenderer`` (which renders the method); this type only admits the
 /// declaration and orchestrates the steps.
-public struct CopyingMacro: MemberMacro {
-    public static func expansion(
+///
+/// The type is `internal`: the compiler finds it through ``CopyingPlugin``, which
+/// lists it in the same module, and the `#externalMacro` declaration in `Copying`
+/// names it by string. Nothing outside this module refers to it, so it is not part of
+/// any public interface.
+struct CopyingMacro: MemberMacro {
+    static func expansion(
         of node: AttributeSyntax,
         providingMembersOf declaration: some DeclGroupSyntax,
         conformingTo protocols: [TypeSyntax],
@@ -105,8 +110,8 @@ private struct CopyingTarget {
             declaration.is(StructDeclSyntax.self)
                 || declaration.is(ClassDeclSyntax.self)
                 || declaration.is(ActorDeclSyntax.self),
-            let named = declaration.asProtocol(NamedDeclSyntax.self),
-            let generic = declaration.asProtocol(WithGenericParametersSyntax.self)
+            let named = declaration.asProtocol((any NamedDeclSyntax).self),
+            let generic = declaration.asProtocol((any WithGenericParametersSyntax).self)
         else {
             return nil
         }
