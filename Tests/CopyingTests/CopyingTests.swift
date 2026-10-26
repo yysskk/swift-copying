@@ -569,6 +569,24 @@ struct CopyingTests {
         #expect(copied.number == 443)
     }
 
+    @Test("Generated code for an initializer that throws only Never works correctly")
+    func initializerThrowingNeverCompileTest() {
+        // `throws(Never)` cannot throw, so the generated call needs no `try`.
+        @Copying
+        final class Token {
+            let value: String
+
+            init(value: String) throws(Never) {
+                self.value = value
+            }
+        }
+
+        let token = Token(value: "a")
+        let copied = token.copying(value: "b")
+
+        #expect(copied.value == "b")
+    }
+
     @Test("Generated code for an initializer with extra omittable parameters works correctly")
     func initializerWithOmittableParametersCompileTest() {
         @Copying

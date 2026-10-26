@@ -172,6 +172,9 @@ extension InitializerDeclSyntax {
     /// `init!` is fine, despite also being failable: its implicitly unwrapped result
     /// converts to the type itself, so the call still type-checks. It traps instead of
     /// returning `nil`, but that is the behavior its author asked for.
+    ///
+    /// So is `throws(Never)` (SE-0413), despite the `throws`: an initializer that can
+    /// throw only `Never` cannot throw at all, and Swift calls it without `try`.
     fileprivate var isCallableAsPlainExpression: Bool {
         guard optionalMark?.tokenKind != .postfixQuestionMark else {
             return false
@@ -179,7 +182,28 @@ extension InitializerDeclSyntax {
         guard let effectSpecifiers = signature.effectSpecifiers else {
             return true
         }
-        return effectSpecifiers.asyncSpecifier == nil && effectSpecifiers.throwsClause == nil
+        return effectSpecifiers.asyncSpecifier == nil && effectSpecifiers.throwsClause?.canThrow != true
+    }
+}
+
+extension ThrowsClauseSyntax {
+    /// Whether a function with this clause can throw at all, which takes `try` to call
+    /// it.
+    ///
+    /// Every clause can except one naming `Never` as the thrown type, spelled on its own
+    /// or qualified with the standard library's module. A typealias for `Never` is not
+    /// recognized, since a macro sees only how a type is spelled; such an initializer
+    /// draws the warning about a throwing one, which is spurious but leaves the build intact.
+    fileprivate var canThrow: Bool {
+        guard let type else {
+            return true
+        }
+        switch type.trimmedDescription {
+        case "Never", "Swift.Never":
+            return false
+        default:
+            return true
+        }
     }
 }
 
