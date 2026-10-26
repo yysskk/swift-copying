@@ -174,6 +174,7 @@ struct ExpansionTests {
             struct Config {
                 let timeout: Optional<Int>
                 let retries: Swift.Optional<Int>
+                let jitter: (Int?)
                 let delay: MaybeInt
             }
             """,
@@ -181,22 +182,26 @@ struct ExpansionTests {
                 struct Config {
                     let timeout: Optional<Int>
                     let retries: Swift.Optional<Int>
+                    let jitter: (Int?)
                     let delay: MaybeInt
 
                     /// Creates a copy of this instance with the specified properties modified.
                     /// - Parameters:
                     ///   - timeout: The new value for `timeout`, or `nil` to keep the current value; pass `.some(nil)` to reset it to `nil`.
                     ///   - retries: The new value for `retries`, or `nil` to keep the current value; pass `.some(nil)` to reset it to `nil`.
+                    ///   - jitter: The new value for `jitter`, or `nil` to keep the current value; pass `.some(nil)` to reset it to `nil`.
                     ///   - delay: The new value for `delay`, or `nil` to keep the current value.
                     /// - Returns: A new instance with the specified modifications.
                     func copying(
                         timeout: (Optional<Int>)? = nil,
                         retries: (Swift.Optional<Int>)? = nil,
+                        jitter: ((Int?))? = nil,
                         delay: (MaybeInt)? = nil
                     ) -> Config {
                         Config(
                             timeout: timeout ?? self.timeout,
                             retries: retries ?? self.retries,
+                            jitter: jitter ?? self.jitter,
                             delay: delay ?? self.delay
                         )
                     }
