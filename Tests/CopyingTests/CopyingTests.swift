@@ -724,6 +724,27 @@ struct CopyingTests {
         #expect(copied.id == 1)
     }
 
+    @MainActor
+    @Test("Generated code for an actor with a main-actor property and nonisolated state compiles and works correctly")
+    func mainActorPropertyWithNonisolatedStateInActorCompileTest() {
+        @Copying
+        actor Session {
+            @MainActor var title: String
+            nonisolated(unsafe) var hits: Int
+
+            init(title: String, hits: Int) {
+                self.title = title
+                self.hits = hits
+            }
+        }
+
+        let session = Session(title: "Home", hits: 3)
+        let copied = session.copying(title: "Settings")
+
+        #expect(copied.title == "Settings")
+        #expect(copied.hits == 3)
+    }
+
     @Test("Generated code for a struct with a main-actor property is callable from any isolation")
     func mainActorPropertyInStructCompileTest() {
         @Copying

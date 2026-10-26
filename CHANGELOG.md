@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Report an actor that copies a mutable property of its own alongside a `@MainActor` property. Reading the main-actor property makes the generated `copying` main-actor-isolated, and such a method cannot read the actor's own `var`, so the expansion failed with "actor-isolated property can not be referenced from the main actor", pointing inside generated code. The macro now reports an error on each such `var` instead. A `let` is not reported, since the main actor can read an actor's constant of a `Sendable` type, and neither is a `nonisolated(unsafe) var`. A `class` is unaffected: its method on the main actor reads every property it copies.
 - Stop escaping an argument label that needs no backticks. For a property declared with backticks, such as `` `default` ``, the generated call spelled the label `` `default`: ``, and Swift warned "keyword 'default' does not need to be escaped in argument list" in every build of the type. The label is now written bare. The names a label cannot take bare keep their backticks: `inout`, and a raw identifier such as `` `the value` ``. The parser decides which names those are. The signature named in the missing-initializer warning follows the same rule, so it reads ``init(`inout`:)`` the way Swift writes that compound name.
 
 ### Changed

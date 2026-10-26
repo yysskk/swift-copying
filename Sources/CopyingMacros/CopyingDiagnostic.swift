@@ -123,6 +123,22 @@ struct CopyingDiagnostic: DiagnosticMessage {
         )
     }
 
+    /// An actor copies a mutable property of its own alongside a main-actor property,
+    /// so no isolation lets the generated method read both.
+    ///
+    /// Reading the main-actor property needs the method on the main actor, while the
+    /// actor's own `var` can only be read on the actor, and a method is isolated to
+    /// one actor at most. Generating it anyway fails inside the expansion with
+    /// "actor-isolated property can not be referenced from the main actor".
+    static func mixedActorIsolation(propertyName: String, mainActorPropertyName: String) -> CopyingDiagnostic {
+        CopyingDiagnostic(
+            id: "mixedActorIsolation",
+            severity: .error,
+            message:
+                "@Copying cannot copy '\(propertyName)' alongside main-actor property '\(mainActorPropertyName)': 'copying' would have to be isolated to both the actor and the main actor; move the main-actor state out of the actor"
+        )
+    }
+
     /// A property a copy would have to carry is declared inside `#if`, so no single
     /// expansion can be right on every build configuration.
     ///
