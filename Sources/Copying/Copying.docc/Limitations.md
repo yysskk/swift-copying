@@ -173,6 +173,8 @@ There is no Fix-It here, because that initializer has to change rather than be j
 
 An `init!` is accepted. It is failable too, but its implicitly unwrapped result converts to the type itself, so the call compiles — a copy traps instead of returning `nil`.
 
+An initializer that throws only `Never`, `init(id: Int) throws(Never)` (SE-0413), is accepted too: it cannot throw, so Swift calls it without `try`. Only `Never` itself is recognized, spelled on its own or as `Swift.Never`; a typealias for it draws the warning, which is spurious but leaves the build intact.
+
 ### Why the initializer rules are warnings
 
 Both initializer rules are warnings rather than errors, because a macro only ever sees the declaration it is attached to. An initializer added in an extension, or inherited from a superclass, satisfies the generated call while being invisible to the check:

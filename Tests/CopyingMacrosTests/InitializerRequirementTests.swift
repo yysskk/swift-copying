@@ -688,6 +688,130 @@ struct InitializerRequirementTests {
         )
     }
 
+    @Test("Copying macro accepts an initializer that throws only Never")
+    func copyingMacroAcceptsInitializerThrowingNever() {
+        assertMacroExpansionForTesting(
+            """
+            @Copying
+            final class User {
+                let id: Int
+
+                init(id: Int) throws(Never) {
+                    self.id = id
+                }
+            }
+            """,
+            expandedSource: """
+                final class User {
+                    let id: Int
+
+                    init(id: Int) throws(Never) {
+                        self.id = id
+                    }
+
+                    /// Creates a copy of this instance with the specified properties modified.
+                    /// - Parameters:
+                    ///   - id: The new value for `id`, or `nil` to keep the current value.
+                    /// - Returns: A new instance with the specified modifications.
+                    func copying(
+                        id: (Int)? = nil
+                    ) -> User {
+                        User(
+                            id: id ?? self.id
+                        )
+                    }
+                }
+                """,
+            macros: testMacros
+        )
+    }
+
+    @Test("Copying macro accepts an initializer that throws only a module-qualified Never")
+    func copyingMacroAcceptsInitializerThrowingQualifiedNever() {
+        assertMacroExpansionForTesting(
+            """
+            @Copying
+            final class User {
+                let id: Int
+
+                init(id: Int) throws(Swift.Never) {
+                    self.id = id
+                }
+            }
+            """,
+            expandedSource: """
+                final class User {
+                    let id: Int
+
+                    init(id: Int) throws(Swift.Never) {
+                        self.id = id
+                    }
+
+                    /// Creates a copy of this instance with the specified properties modified.
+                    /// - Parameters:
+                    ///   - id: The new value for `id`, or `nil` to keep the current value.
+                    /// - Returns: A new instance with the specified modifications.
+                    func copying(
+                        id: (Int)? = nil
+                    ) -> User {
+                        User(
+                            id: id ?? self.id
+                        )
+                    }
+                }
+                """,
+            macros: testMacros
+        )
+    }
+
+    @Test("Copying macro warns when the initializer throws a typed error")
+    func copyingMacroWarnsWhenInitializerThrowsTypedError() {
+        assertMacroExpansionForTesting(
+            """
+            @Copying
+            final class User {
+                let id: Int
+
+                init(id: Int) throws(ValidationError) {
+                    self.id = id
+                }
+            }
+            """,
+            expandedSource: """
+                final class User {
+                    let id: Int
+
+                    init(id: Int) throws(ValidationError) {
+                        self.id = id
+                    }
+
+                    /// Creates a copy of this instance with the specified properties modified.
+                    /// - Parameters:
+                    ///   - id: The new value for `id`, or `nil` to keep the current value.
+                    /// - Returns: A new instance with the specified modifications.
+                    func copying(
+                        id: (Int)? = nil
+                    ) -> User {
+                        User(
+                            id: id ?? self.id
+                        )
+                    }
+                }
+                """,
+            diagnostics: [
+                DiagnosticSpec(
+                    id: MessageID(domain: "CopyingMacros", id: "unusableInitializer"),
+                    message:
+                        "@Copying calls 'init(id:)' to build the copy, so it cannot be failable ('init?'), throwing, or async",
+                    line: 5,
+                    column: 5,
+                    severity: .warning
+                )
+            ],
+            macros: testMacros
+        )
+    }
+
     @Test("Copying macro accepts a convenience initializer")
     func copyingMacroAcceptsConvenienceInitializer() {
         assertMacroExpansionForTesting(
