@@ -53,24 +53,26 @@ extension AccessLevel {
         }
     }
 
-    /// The modifier generated code spells for this level, with the trailing space that
-    /// separates it from what follows.
+    /// The modifiers a generated member carries for this level, each followed by the
+    /// space that separates it from what comes next.
     ///
-    /// `internal` renders as nothing, which is the level a declaration without an
+    /// `internal` contributes none, which is the level a declaration without an
     /// access-level modifier already carries.
-    var rendered: String {
+    var modifiers: DeclModifierListSyntax {
+        let keyword: Keyword
         switch self {
         case .private:
-            return "private "
+            keyword = .private
         case .fileprivate:
-            return "fileprivate "
+            keyword = .fileprivate
         case .internal:
-            return ""
+            return []
         case .package:
-            return "package "
+            keyword = .package
         case .public:
-            return "public "
+            keyword = .public
         }
+        return [DeclModifierSyntax(name: .keyword(keyword), trailingTrivia: .space)]
     }
 
     /// The level `modifiers` spell out, or `nil` when they declare none and the

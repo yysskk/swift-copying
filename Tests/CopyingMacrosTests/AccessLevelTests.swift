@@ -1,9 +1,26 @@
 import SwiftDiagnostics
+import SwiftSyntax
 import SwiftSyntaxMacrosGenericTestSupport
 import Testing
 
+@testable import CopyingMacros
+
 @Suite("CopyingMacro Access Level Tests")
 struct AccessLevelTests {
+    @Test(
+        "Each access level contributes the modifier Swift spells for it",
+        arguments: [
+            (AccessLevel.private, "private "),
+            (.fileprivate, "fileprivate "),
+            (.internal, ""),
+            (.package, "package "),
+            (.public, "public "),
+        ]
+    )
+    func accessLevelModifiers(level: AccessLevel, expected: String) {
+        #expect(level.modifiers.description == expected)
+    }
+
     @Test("Copying macro inherits public access level")
     func copyingMacroWithPublicStruct() {
         assertMacroExpansionForTesting(

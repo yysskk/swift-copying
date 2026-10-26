@@ -69,17 +69,20 @@ extension MethodIsolation {
         self = .mainActor
     }
 
-    /// The attribute generated code spells for this isolation, with the trailing space
-    /// that separates it from what follows.
+    /// The attributes the method carries for this isolation, each followed by the
+    /// space that separates it from what comes next.
     ///
-    /// `inherited` renders as nothing, which is how a member takes its type's
-    /// isolation.
-    var rendered: String {
+    /// `inherited` contributes none, which is how a member takes its type's isolation.
+    var attributes: AttributeListSyntax {
         switch self {
         case .inherited:
-            return ""
+            return []
         case .mainActor:
-            return "@MainActor "
+            let attribute = AttributeSyntax(
+                attributeName: IdentifierTypeSyntax(name: .identifier("MainActor")),
+                trailingTrivia: .space
+            )
+            return [.attribute(attribute)]
         }
     }
 }
