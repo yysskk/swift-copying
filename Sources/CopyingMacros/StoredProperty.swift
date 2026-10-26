@@ -62,7 +62,7 @@ struct StoredProperty {
     /// `?` after them wraps the whole of each. Every other type is parenthesized, which
     /// is never wrong, so a kind of type a later Swift adds stays correct here as well.
     private static func needsParenthesesBeforeOptionalMark(_ type: TypeSyntax) -> Bool {
-        let selfContainedTypes: [any TypeSyntaxProtocol.Type] = [
+        var selfContainedTypes: [any TypeSyntaxProtocol.Type] = [
             IdentifierTypeSyntax.self,
             MemberTypeSyntax.self,
             ArrayTypeSyntax.self,
@@ -71,6 +71,11 @@ struct StoredProperty {
             OptionalTypeSyntax.self,
             MetatypeTypeSyntax.self,
         ]
+        // The `[n of T]` sugar for `InlineArray` (SE-0483) is bracketed like an array.
+        // swift-syntax models it from 602 on; an older one does not parse it as a type.
+        #if canImport(SwiftSyntax602)
+            selfContainedTypes.append(InlineArrayTypeSyntax.self)
+        #endif
         return !selfContainedTypes.contains { type.is($0) }
     }
 }
