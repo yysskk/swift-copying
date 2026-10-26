@@ -342,6 +342,22 @@ final class Node {
 
 The copy holds `next` weakly too, so it does not keep the referent alive. A `weak` property is always optional, so its parameter is a double optional and follows <doc:OptionalProperties>: `copying(next: nil)` keeps the current reference, while `copying(next: .some(nil))` clears it.
 
+### Escaped and raw identifier names
+
+A property whose name needs backticks is copied like any other. Generated code keeps the backticks wherever it refers to the property, and drops them from the argument label of the call that builds the copy, where Swift accepts the name bare and warns about backticks it does not need:
+
+```swift
+@Copying
+struct Theme {
+    var `default`: String
+}
+// Builds the copy with 'Theme(default: `default` ?? self.`default`)'.
+```
+
+The two names a label still needs backticks for keep them: `inout`, and a raw identifier (SE-0451) such as `` `the value` ``.
+
+A raw identifier needs swift-syntax 602 or later, the first release that parses one. A macro reads the declaration with the swift-syntax the package graph resolves, so when another dependency holds it to an older release, `@Copying` misreads such a property and the generated call does not compile. Every other escaped name works with every supported release.
+
 ### Noncopyable types
 
 A `~Copyable` type is supported as long as the properties `copying` carries are themselves copyable. Methods on such a type borrow `self` by default, which is all `copying` needs: it reads each property and returns a freshly built instance.
