@@ -33,7 +33,7 @@ jobs:
     # Skip pull requests from forks, whose read-only token cannot upload the artifact.
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
-    container: swift:6.3
+    container: swift:6.4
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7

@@ -21,7 +21,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        swift: ["6.2", "6.3"]
+        swift: ["6.2", "6.3", "6.4"]
     steps:
       - uses: actions/checkout@v7
 
@@ -87,9 +87,9 @@ jobs:
         run: swift test
 
   swift-syntax-prerelease:
-    name: Linux (Swift 6.3, swift-syntax 605.0.0 prerelease)
+    name: Linux (Swift 6.4, swift-syntax 605.0.0 prerelease)
     runs-on: ubuntu-latest
-    container: swift:6.3
+    container: swift:6.4
     env:
       # Pins swift-syntax above the supported range (see Package.swift). Pinned to
       # an exact tag rather than tracking the newest prerelease, so this job only
@@ -110,7 +110,7 @@ jobs:
   lint:
     name: Lint
     runs-on: ubuntu-latest
-    container: swift:6.3
+    container: swift:6.4
     steps:
       - uses: actions/checkout@v7
 
