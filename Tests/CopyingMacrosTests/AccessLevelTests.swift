@@ -25,8 +25,8 @@ struct AccessLevelTests {
                     ///   - age: The new value for `age`, or `nil` to keep the current value.
                     /// - Returns: A new instance with the specified modifications.
                     public func copying(
-                        name: (String)? = nil,
-                        age: (Int)? = nil
+                        name: String? = nil,
+                        age: Int? = nil
                     ) -> Person {
                         Person(
                             name: name ?? self.name,
@@ -57,7 +57,7 @@ struct AccessLevelTests {
                     ///   - name: The new value for `name`, or `nil` to keep the current value.
                     /// - Returns: A new instance with the specified modifications.
                     package func copying(
-                        name: (String)? = nil
+                        name: String? = nil
                     ) -> Person {
                         Person(
                             name: name ?? self.name
@@ -87,7 +87,7 @@ struct AccessLevelTests {
                     ///   - name: The new value for `name`, or `nil` to keep the current value.
                     /// - Returns: A new instance with the specified modifications.
                     fileprivate func copying(
-                        name: (String)? = nil
+                        name: String? = nil
                     ) -> Person {
                         Person(
                             name: name ?? self.name
@@ -117,7 +117,7 @@ struct AccessLevelTests {
                     ///   - name: The new value for `name`, or `nil` to keep the current value.
                     /// - Returns: A new instance with the specified modifications.
                     fileprivate func copying(
-                        name: (String)? = nil
+                        name: String? = nil
                     ) -> Person {
                         Person(
                             name: name ?? self.name
@@ -160,8 +160,8 @@ struct AccessLevelTests {
                     ///   - username: The new value for `username`, or `nil` to keep the current value.
                     /// - Returns: A new instance with the specified modifications.
                     public func copying(
-                        id: (Int)? = nil,
-                        username: (String)? = nil
+                        id: Int? = nil,
+                        username: String? = nil
                     ) -> User {
                         User(
                             id: id ?? self.id,
@@ -213,7 +213,7 @@ struct AccessLevelTests {
                     ///   - id: The new value for `id`, or `nil` to keep the current value.
                     /// - Returns: A new instance with the specified modifications.
                     public func copying(
-                        id: (Int)? = nil
+                        id: Int? = nil
                     ) -> User {
                         User(
                             id: id ?? self.id
@@ -243,7 +243,7 @@ struct AccessLevelTests {
                     ///   - name: The new value for `name`, or `nil` to keep the current value.
                     /// - Returns: A new instance with the specified modifications.
                     func copying(
-                        name: (String)? = nil
+                        name: String? = nil
                     ) -> Person {
                         Person(
                             name: name ?? self.name
@@ -279,8 +279,8 @@ struct AccessLevelTests {
                     ///   - token: The new value for `token`, or `nil` to keep the current value.
                     /// - Returns: A new instance with the specified modifications.
                     func copying(
-                        id: (String)? = nil,
-                        token: (Token)? = nil
+                        id: String? = nil,
+                        token: Token? = nil
                     ) -> Session {
                         Session(
                             id: id ?? self.id,
@@ -316,8 +316,8 @@ struct AccessLevelTests {
                     ///   - token: The new value for `token`, or `nil` to keep the current value.
                     /// - Returns: A new instance with the specified modifications.
                     private func copying(
-                        id: (String)? = nil,
-                        token: (String)? = nil
+                        id: String? = nil,
+                        token: String? = nil
                     ) -> Session {
                         Session(
                             id: id ?? self.id,
@@ -351,8 +351,8 @@ struct AccessLevelTests {
                     ///   - code: The new value for `code`, or `nil` to keep the current value.
                     /// - Returns: A new instance with the specified modifications.
                     package func copying(
-                        id: (Int)? = nil,
-                        code: (String)? = nil
+                        id: Int? = nil,
+                        code: String? = nil
                     ) -> Region {
                         Region(
                             id: id ?? self.id,
@@ -383,7 +383,7 @@ struct AccessLevelTests {
                     ///   - combination: The new value for `combination`, or `nil` to keep the current value.
                     /// - Returns: A new instance with the specified modifications.
                     private func copying(
-                        combination: (Int)? = nil
+                        combination: Int? = nil
                     ) -> Vault {
                         Vault(
                             combination: combination ?? self.combination
@@ -415,7 +415,7 @@ struct AccessLevelTests {
                     ///   - score: The new value for `score`, or `nil` to keep the current value.
                     /// - Returns: A new instance with the specified modifications.
                     public func copying(
-                        score: (Int)? = nil
+                        score: Int? = nil
                     ) -> Scoreboard {
                         Scoreboard(
                             score: score ?? self.score
@@ -445,7 +445,7 @@ struct AccessLevelTests {
                     ///   - name: The new value for `name`, or `nil` to keep the current value.
                     /// - Returns: A new instance with the specified modifications.
                     func copying(
-                        name: (String)? = nil
+                        name: String? = nil
                     ) -> Profile {
                         Profile(
                             name: name ?? self.name
@@ -483,7 +483,7 @@ struct AccessLevelTests {
                     ///   - name: The new value for `name`, or `nil` to keep the current value.
                     /// - Returns: A new instance with the specified modifications.
                     public func copying(
-                        name: (String)? = nil
+                        name: String? = nil
                     ) -> Theme {
                         Theme(
                             name: name ?? self.name
@@ -536,7 +536,7 @@ struct AccessLevelTests {
                     ///   - value: The new value for `value`, or `nil` to keep the current value.
                     /// - Returns: A new instance with the specified modifications.
                     public func copying(
-                        value: (Int)? = nil
+                        value: Int? = nil
                     ) -> Gauge {
                         Gauge(
                             value: value ?? self.value
@@ -567,8 +567,8 @@ struct AccessLevelTests {
                     ///   - height: The new value for `height`, or `nil` to keep the current value.
                     /// - Returns: A new instance with the specified modifications.
                     private func copying(
-                        width: (Int)? = nil,
-                        height: (Int)? = nil
+                        width: Int? = nil,
+                        height: Int? = nil
                     ) -> Size {
                         Size(
                             width: width ?? self.width,

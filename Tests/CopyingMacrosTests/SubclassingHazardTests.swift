@@ -30,7 +30,7 @@ struct SubclassingHazardTests {
                     ///   - id: The new value for `id`, or `nil` to keep the current value.
                     /// - Returns: A new instance with the specified modifications.
                     func copying(
-                        id: (Int)? = nil
+                        id: Int? = nil
                     ) -> User {
                         User(
                             id: id ?? self.id
@@ -90,7 +90,7 @@ struct SubclassingHazardTests {
                     ///   - id: The new value for `id`, or `nil` to keep the current value.
                     /// - Returns: A new instance with the specified modifications.
                     public func copying(
-                        id: (Int)? = nil
+                        id: Int? = nil
                     ) -> User {
                         User(
                             id: id ?? self.id
@@ -150,7 +150,7 @@ struct SubclassingHazardTests {
                     ///   - id: The new value for `id`, or `nil` to keep the current value.
                     /// - Returns: A new instance with the specified modifications.
                     public func copying(
-                        id: (Int)? = nil
+                        id: Int? = nil
                     ) -> User {
                         User(
                             id: id ?? self.id
@@ -215,7 +215,7 @@ struct SubclassingHazardTests {
                         ///   - value: The new value for `value`, or `nil` to keep the current value.
                         /// - Returns: A new instance with the specified modifications.
                         func copying(
-                            value: (Int)? = nil
+                            value: Int? = nil
                         ) -> Box {
                             Box(
                                 value: value ?? self.value
@@ -270,7 +270,7 @@ struct SubclassingHazardTests {
                     ///   - id: The new value for `id`, or `nil` to keep the current value.
                     /// - Returns: A new instance with the specified modifications.
                     func copying(
-                        id: (Int)? = nil
+                        id: Int? = nil
                     ) -> User {
                         User(
                             id: id ?? self.id

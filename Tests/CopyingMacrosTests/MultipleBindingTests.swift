@@ -23,8 +23,8 @@ struct MultipleBindingTests {
                     ///   - y: The new value for `y`, or `nil` to keep the current value.
                     /// - Returns: A new instance with the specified modifications.
                     func copying(
-                        x: (Int)? = nil,
-                        y: (Int)? = nil
+                        x: Int? = nil,
+                        y: Int? = nil
                     ) -> Point {
                         Point(
                             x: x ?? self.x,
@@ -59,9 +59,9 @@ struct MultipleBindingTests {
                     ///   - email: The new value for `email`, or `nil` to keep the current value.
                     /// - Returns: A new instance with the specified modifications.
                     func copying(
-                        name: (String)? = nil,
-                        age: (Int)? = nil,
-                        email: (String)? = nil
+                        name: String? = nil,
+                        age: Int? = nil,
+                        email: String? = nil
                     ) -> Person {
                         Person(
                             name: name ?? self.name,
@@ -93,7 +93,7 @@ struct MultipleBindingTests {
                     ///   - b: The new value for `b`, or `nil` to keep the current value.
                     /// - Returns: A new instance with the specified modifications.
                     func copying(
-                        b: (Int)? = nil
+                        b: Int? = nil
                     ) -> Sample {
                         Sample(
                             b: b ?? self.b
@@ -127,8 +127,8 @@ struct MultipleBindingTests {
                     ///   - y: The new value for `y`, or `nil` to keep the current value.
                     /// - Returns: A new instance with the specified modifications.
                     func copying(
-                        x: (Int)? = nil,
-                        y: (Int)? = nil
+                        x: Int? = nil,
+                        y: Int? = nil
                     ) -> Point {
                         Point(
                             x: x ?? self.x,
@@ -164,10 +164,10 @@ struct MultipleBindingTests {
                     ///   - unit: The new value for `unit`, or `nil` to keep the current value.
                     /// - Returns: A new instance with the specified modifications.
                     func copying(
-                        x: (Int)? = nil,
-                        y: (Int)? = nil,
-                        label: (String)? = nil,
-                        unit: (String)? = nil
+                        x: Int? = nil,
+                        y: Int? = nil,
+                        label: String? = nil,
+                        unit: String? = nil
                     ) -> Rect {
                         Rect(
                             x: x ?? self.x,
@@ -203,8 +203,8 @@ struct MultipleBindingTests {
                     ///   - subtitle: The new value for `subtitle`, or `nil` to keep the current value; pass `.some(nil)` to reset it to `nil`.
                     /// - Returns: A new instance with the specified modifications.
                     func copying(
-                        title: (String?)? = nil,
-                        subtitle: (String?)? = nil
+                        title: String?? = nil,
+                        subtitle: String?? = nil
                     ) -> Screen {
                         Screen(
                             title: title ?? self.title,

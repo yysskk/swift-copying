@@ -28,20 +28,50 @@ struct StoredProperty {
     /// The binding that declares the property, where a diagnostic about it belongs.
     let binding: PatternBindingSyntax
 
-    /// The type the `copying` parameter wraps in an optional.
+    /// The type of the `copying` parameter for this property: the property's type
+    /// wrapped in an optional, so that `nil` can mean "keep the current value".
     ///
-    /// This is the declared type, except for an implicitly unwrapped optional (`T!`),
-    /// which is spelled `T?`. Swift only accepts `!` at the top level of a property's
-    /// or a parameter's type (SE-0054), so the `(T!)? = nil` parameter the renderer
-    /// would otherwise write is rejected outright. `T!` denotes the very same type as
-    /// `T?` — the `!` only asks for implicit unwrapping at each use — so the parameter
-    /// still accepts exactly the same arguments, and the property still receives the
-    /// optional it is declared with.
+    /// The type is wrapped as written, `Int?` for `Int` and `Int??` for `Int?`, and is
+    /// parenthesized only where the `?` would otherwise bind to part of it — see
+    /// `needsParenthesesBeforeOptionalMark(_:)`.
+    ///
+    /// An implicitly unwrapped optional (`T!`) is the one type wrapped as `T??`
+    /// rather than as written. Swift only accepts `!` at the top level of a property's
+    /// or a parameter's type (SE-0054), so `T!?` is rejected outright. `T!` denotes the
+    /// very same type as `T?` — the `!` only asks for implicit unwrapping at each use
+    /// — so the parameter still accepts exactly the same arguments, and the property
+    /// still receives the optional it is declared with.
     var parameterType: TypeSyntax {
-        guard let implicitlyUnwrapped = type.as(ImplicitlyUnwrappedOptionalTypeSyntax.self) else {
-            return type
+        var wrappedType = type
+        if let implicitlyUnwrapped = type.as(ImplicitlyUnwrappedOptionalTypeSyntax.self) {
+            wrappedType = TypeSyntax(OptionalTypeSyntax(wrappedType: implicitlyUnwrapped.wrappedType.trimmed))
         }
-        return TypeSyntax(OptionalTypeSyntax(wrappedType: implicitlyUnwrapped.wrappedType.trimmed))
+        if Self.needsParenthesesBeforeOptionalMark(wrappedType) {
+            wrappedType = TypeSyntax(TupleTypeSyntax(elements: [TupleTypeElementSyntax(type: wrappedType)]))
+        }
+        return TypeSyntax(OptionalTypeSyntax(wrappedType: wrappedType))
+    }
+
+    /// Whether `type` needs parentheses for a `?` written after it to make the whole
+    /// type optional.
+    ///
+    /// A `?` binds tighter than most type syntax: `() -> Int?` returns an optional
+    /// rather than being one, `P & Q?` composes with an optional, and Swift rejects
+    /// `any P?` and `some P?` outright. The types listed here are complete on their own
+    /// — a name, a bracketed or parenthesized type, or one ending in a postfix — so a
+    /// `?` after them wraps the whole of each. Every other type is parenthesized, which
+    /// is never wrong, so a kind of type a later Swift adds stays correct here as well.
+    private static func needsParenthesesBeforeOptionalMark(_ type: TypeSyntax) -> Bool {
+        let selfContainedTypes: [any TypeSyntaxProtocol.Type] = [
+            IdentifierTypeSyntax.self,
+            MemberTypeSyntax.self,
+            ArrayTypeSyntax.self,
+            DictionaryTypeSyntax.self,
+            TupleTypeSyntax.self,
+            OptionalTypeSyntax.self,
+            MetatypeTypeSyntax.self,
+        ]
+        return !selfContainedTypes.contains { type.is($0) }
     }
 }
 

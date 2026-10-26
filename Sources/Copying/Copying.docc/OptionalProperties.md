@@ -72,4 +72,4 @@ screen.copying(subtitle: "Hello")     // subtitle == "Hello"
 screen.copying(subtitle: .some(nil))  // subtitle == nil
 ```
 
-The parameter itself is spelled `(String?)?` rather than `(String!)?`, because Swift only accepts `!` at the top level of a property's or a parameter's type and here it is nested in the outer optional. That is the same type either way, so the parameter takes the same arguments, and the property is still implicitly unwrapped in the copy.
+The parameter itself is spelled `String??` rather than `String!?`, because Swift only accepts `!` at the top level of a property's or a parameter's type and here it is nested in the outer optional. That is the same type either way, so the parameter takes the same arguments, and the property is still implicitly unwrapped in the copy.

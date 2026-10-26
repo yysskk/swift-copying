@@ -35,8 +35,8 @@ struct IsolationTests {
                     ///   - id: The new value for `id`, or `nil` to keep the current value.
                     /// - Returns: A new instance with the specified modifications.
                     @MainActor func copying(
-                        title: (String)? = nil,
-                        id: (Int)? = nil
+                        title: String? = nil,
+                        id: Int? = nil
                     ) -> Model {
                         Model(
                             title: title ?? self.title,
@@ -75,7 +75,7 @@ struct IsolationTests {
                     ///   - title: The new value for `title`, or `nil` to keep the current value.
                     /// - Returns: A new instance with the specified modifications.
                     @MainActor func copying(
-                        title: (String)? = nil
+                        title: String? = nil
                     ) -> Session {
                         Session(
                             title: title ?? self.title
@@ -173,9 +173,9 @@ struct IsolationTests {
                     ///   - hits: The new value for `hits`, or `nil` to keep the current value.
                     /// - Returns: A new instance with the specified modifications.
                     @MainActor func copying(
-                        title: (String)? = nil,
-                        id: (Int)? = nil,
-                        hits: (Int)? = nil
+                        title: String? = nil,
+                        id: Int? = nil,
+                        hits: Int? = nil
                     ) -> Session {
                         Session(
                             title: title ?? self.title,
@@ -217,7 +217,7 @@ struct IsolationTests {
                     ///   - count: The new value for `count`, or `nil` to keep the current value.
                     /// - Returns: A new instance with the specified modifications.
                     func copying(
-                        count: (Int)? = nil
+                        count: Int? = nil
                     ) -> Session {
                         Session(
                             count: count ?? self.count
@@ -260,8 +260,8 @@ struct IsolationTests {
                     ///   - revision: The new value for `revision`, or `nil` to keep the current value.
                     /// - Returns: A new instance with the specified modifications.
                     @MainActor func copying(
-                        title: (String)? = nil,
-                        revision: (Int)? = nil
+                        title: String? = nil,
+                        revision: Int? = nil
                     ) -> Document {
                         Document(
                             title: title ?? self.title,
@@ -300,7 +300,7 @@ struct IsolationTests {
                     ///   - title: The new value for `title`, or `nil` to keep the current value.
                     /// - Returns: A new instance with the specified modifications.
                     @MainActor public func copying(
-                        title: (String)? = nil
+                        title: String? = nil
                     ) -> Model {
                         Model(
                             title: title ?? self.title
@@ -338,7 +338,7 @@ struct IsolationTests {
                     ///   - title: The new value for `title`, or `nil` to keep the current value.
                     /// - Returns: A new instance with the specified modifications.
                     @MainActor func copying(
-                        title: (String)? = nil
+                        title: String? = nil
                     ) -> Model {
                         Model(
                             title: title ?? self.title
@@ -368,7 +368,7 @@ struct IsolationTests {
                     ///   - text: The new value for `text`, or `nil` to keep the current value.
                     /// - Returns: A new instance with the specified modifications.
                     func copying(
-                        text: (String)? = nil
+                        text: String? = nil
                     ) -> Label {
                         Label(
                             text: text ?? self.text
@@ -408,7 +408,7 @@ struct IsolationTests {
                     ///   - title: The new value for `title`, or `nil` to keep the current value.
                     /// - Returns: A new instance with the specified modifications.
                     func copying(
-                        title: (String)? = nil
+                        title: String? = nil
                     ) -> Model {
                         Model(
                             title: title ?? self.title
@@ -450,7 +450,7 @@ struct IsolationTests {
                     ///   - id: The new value for `id`, or `nil` to keep the current value.
                     /// - Returns: A new instance with the specified modifications.
                     func copying(
-                        id: (Int)? = nil
+                        id: Int? = nil
                     ) -> Model {
                         Model(
                             id: id ?? self.id
@@ -488,7 +488,7 @@ struct IsolationTests {
                     ///   - title: The new value for `title`, or `nil` to keep the current value.
                     /// - Returns: A new instance with the specified modifications.
                     func copying(
-                        title: (String)? = nil
+                        title: String? = nil
                     ) -> Model {
                         Model(
                             title: title ?? self.title

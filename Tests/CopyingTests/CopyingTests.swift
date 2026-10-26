@@ -569,6 +569,29 @@ struct CopyingTests {
         #expect(copied.number == 443)
     }
 
+    @Test("Generated code compiles for every kind of parameter type it spells")
+    func parameterTypeSpellingCompileTest() {
+        // Each of these types is spelled with or without parentheses before the `?`
+        // the parameter adds; a wrong choice would not compile.
+        @Copying
+        struct Shapes {
+            let pair: (Int, Int)
+            let kind: Int.Type
+            let anyKind: any Equatable.Type
+            let key: any Hashable & Sendable
+            let handler: @Sendable () -> Int
+        }
+
+        let shapes = Shapes(pair: (1, 2), kind: Int.self, anyKind: String.self, key: "a", handler: { 1 })
+        let copied = shapes.copying(pair: (3, 4), anyKind: Int.self, key: 5, handler: { 2 })
+
+        #expect(copied.pair == (3, 4))
+        #expect(ObjectIdentifier(copied.kind) == ObjectIdentifier(Int.self))
+        #expect(ObjectIdentifier(copied.anyKind) == ObjectIdentifier(Int.self))
+        #expect(copied.key as? Int == 5)
+        #expect(copied.handler() == 2)
+    }
+
     @Test("Generated code for an initializer that throws only Never works correctly")
     func initializerThrowingNeverCompileTest() {
         // `throws(Never)` cannot throw, so the generated call needs no `try`.

@@ -25,8 +25,8 @@ struct InitializerRequirementTests {
                     ///   - username: The new value for `username`, or `nil` to keep the current value.
                     /// - Returns: A new instance with the specified modifications.
                     func copying(
-                        id: (Int)? = nil,
-                        username: (String)? = nil
+                        id: Int? = nil,
+                        username: String? = nil
                     ) -> User {
                         User(
                             id: id ?? self.id,
@@ -94,8 +94,8 @@ struct InitializerRequirementTests {
                     ///   - username: The new value for `username`, or `nil` to keep the current value.
                     /// - Returns: A new instance with the specified modifications.
                     func copying(
-                        id: (Int)? = nil,
-                        username: (String)? = nil
+                        id: Int? = nil,
+                        username: String? = nil
                     ) -> User {
                         User(
                             id: id ?? self.id,
@@ -157,7 +157,7 @@ struct InitializerRequirementTests {
                     ///   - value: The new value for `value`, or `nil` to keep the current value.
                     /// - Returns: A new instance with the specified modifications.
                     func copying(
-                        value: (Int)? = nil
+                        value: Int? = nil
                     ) -> Counter {
                         Counter(
                             value: value ?? self.value
@@ -222,8 +222,8 @@ struct InitializerRequirementTests {
                     ///   - y: The new value for `y`, or `nil` to keep the current value.
                     /// - Returns: A new instance with the specified modifications.
                     func copying(
-                        x: (Int)? = nil,
-                        y: (Int)? = nil
+                        x: Int? = nil,
+                        y: Int? = nil
                     ) -> Point {
                         Point(
                             x: x ?? self.x,
@@ -298,8 +298,8 @@ struct InitializerRequirementTests {
                     ///   - tags: The new value for `tags`, or `nil` to keep the current value.
                     /// - Returns: A new instance with the specified modifications.
                     func copying(
-                        id: (Int)? = nil,
-                        tags: ([String])? = nil
+                        id: Int? = nil,
+                        tags: [String]? = nil
                     ) -> User {
                         User(
                             id: id ?? self.id,
@@ -345,8 +345,8 @@ struct InitializerRequirementTests {
                     ///   - tags: The new value for `tags`, or `nil` to keep the current value.
                     /// - Returns: A new instance with the specified modifications.
                     func copying(
-                        id: (Int)? = nil,
-                        tags: ([String])? = nil
+                        id: Int? = nil,
+                        tags: [String]? = nil
                     ) -> Post {
                         Post(
                             id: id ?? self.id,
@@ -418,7 +418,7 @@ struct InitializerRequirementTests {
                     ///   - default: The new value for `default`, or `nil` to keep the current value.
                     /// - Returns: A new instance with the specified modifications.
                     func copying(
-                        `default`: (String)? = nil
+                        `default`: String? = nil
                     ) -> Theme {
                         Theme(
                             default: `default` ?? self.`default`
@@ -448,7 +448,7 @@ struct InitializerRequirementTests {
                     ///   - default: The new value for `default`, or `nil` to keep the current value.
                     /// - Returns: A new instance with the specified modifications.
                     func copying(
-                        `default`: (String)? = nil
+                        `default`: String? = nil
                     ) -> Theme {
                         Theme(
                             default: `default` ?? self.`default`
@@ -510,7 +510,7 @@ struct InitializerRequirementTests {
                     ///   - value: The new value for `value`, or `nil` to keep the current value.
                     /// - Returns: A new instance with the specified modifications.
                     func copying(
-                        value: (Int)? = nil
+                        value: Int? = nil
                     ) -> Box {
                         Box(
                             value: value ?? self.value
@@ -580,7 +580,7 @@ struct InitializerRequirementTests {
                     ///   - id: The new value for `id`, or `nil` to keep the current value.
                     /// - Returns: A new instance with the specified modifications.
                     func copying(
-                        id: (Int)? = nil
+                        id: Int? = nil
                     ) -> User {
                         User(
                             id: id ?? self.id
@@ -628,7 +628,7 @@ struct InitializerRequirementTests {
                     ///   - id: The new value for `id`, or `nil` to keep the current value.
                     /// - Returns: A new instance with the specified modifications.
                     func copying(
-                        id: (Int)? = nil
+                        id: Int? = nil
                     ) -> User {
                         User(
                             id: id ?? self.id
@@ -666,7 +666,7 @@ struct InitializerRequirementTests {
                     ///   - id: The new value for `id`, or `nil` to keep the current value.
                     /// - Returns: A new instance with the specified modifications.
                     func copying(
-                        id: (Int)? = nil
+                        id: Int? = nil
                     ) -> User {
                         User(
                             id: id ?? self.id
@@ -714,7 +714,7 @@ struct InitializerRequirementTests {
                     ///   - id: The new value for `id`, or `nil` to keep the current value.
                     /// - Returns: A new instance with the specified modifications.
                     func copying(
-                        id: (Int)? = nil
+                        id: Int? = nil
                     ) -> User {
                         User(
                             id: id ?? self.id
@@ -752,7 +752,7 @@ struct InitializerRequirementTests {
                     ///   - id: The new value for `id`, or `nil` to keep the current value.
                     /// - Returns: A new instance with the specified modifications.
                     func copying(
-                        id: (Int)? = nil
+                        id: Int? = nil
                     ) -> User {
                         User(
                             id: id ?? self.id
@@ -790,7 +790,7 @@ struct InitializerRequirementTests {
                     ///   - id: The new value for `id`, or `nil` to keep the current value.
                     /// - Returns: A new instance with the specified modifications.
                     func copying(
-                        id: (Int)? = nil
+                        id: Int? = nil
                     ) -> User {
                         User(
                             id: id ?? self.id
@@ -855,8 +855,8 @@ struct InitializerRequirementTests {
                     ///   - username: The new value for `username`, or `nil` to keep the current value.
                     /// - Returns: A new instance with the specified modifications.
                     func copying(
-                        id: (Int)? = nil,
-                        username: (String)? = nil
+                        id: Int? = nil,
+                        username: String? = nil
                     ) -> User {
                         User(
                             id: id ?? self.id,
@@ -897,7 +897,7 @@ struct InitializerRequirementTests {
                     ///   - id: The new value for `id`, or `nil` to keep the current value.
                     /// - Returns: A new instance with the specified modifications.
                     func copying(
-                        id: (Int)? = nil
+                        id: Int? = nil
                     ) -> Box {
                         Box(
                             id: id ?? self.id
@@ -935,7 +935,7 @@ struct InitializerRequirementTests {
                     ///   - id: The new value for `id`, or `nil` to keep the current value.
                     /// - Returns: A new instance with the specified modifications.
                     func copying(
-                        id: (Int)? = nil
+                        id: Int? = nil
                     ) -> User {
                         User(
                             id: id ?? self.id
@@ -983,7 +983,7 @@ struct InitializerRequirementTests {
                     ///   - id: The new value for `id`, or `nil` to keep the current value.
                     /// - Returns: A new instance with the specified modifications.
                     func copying(
-                        id: (Int)? = nil
+                        id: Int? = nil
                     ) -> User {
                         User(
                             id: id ?? self.id
@@ -1045,7 +1045,7 @@ struct InitializerRequirementTests {
                     ///   - id: The new value for `id`, or `nil` to keep the current value.
                     /// - Returns: A new instance with the specified modifications.
                     func copying(
-                        id: (Int)? = nil
+                        id: Int? = nil
                     ) -> User {
                         User(
                             id: id ?? self.id
@@ -1091,7 +1091,7 @@ struct InitializerRequirementTests {
                     ///   - id: The new value for `id`, or `nil` to keep the current value.
                     /// - Returns: A new instance with the specified modifications.
                     func copying(
-                        id: (Int)? = nil
+                        id: Int? = nil
                     ) -> User {
                         User(
                             id: id ?? self.id
@@ -1129,7 +1129,7 @@ struct InitializerRequirementTests {
                     ///   - value: The new value for `value`, or `nil` to keep the current value.
                     /// - Returns: A new instance with the specified modifications.
                     public func copying(
-                        value: (Int)? = nil
+                        value: Int? = nil
                     ) -> Counter {
                         Counter(
                             value: value ?? self.value
@@ -1198,7 +1198,7 @@ struct InitializerRequirementTests {
                     ///   - id: The new value for `id`, or `nil` to keep the current value.
                     /// - Returns: A new instance with the specified modifications.
                     func copying(
-                        id: (Int)? = nil
+                        id: Int? = nil
                     ) -> User {
                         User(
                             id: id ?? self.id
@@ -1246,7 +1246,7 @@ struct InitializerRequirementTests {
                     ///   - id: The new value for `id`, or `nil` to keep the current value.
                     /// - Returns: A new instance with the specified modifications.
                     func copying(
-                        id: (Int)? = nil
+                        id: Int? = nil
                     ) -> User {
                         User(
                             id: id ?? self.id
@@ -1278,7 +1278,7 @@ struct InitializerRequirementTests {
                     ///   - value: The new value for `value`, or `nil` to keep the current value.
                     /// - Returns: A new instance with the specified modifications.
                     func copying(
-                        value: (Int)? = nil
+                        value: Int? = nil
                     ) -> Counter {
                         Counter(
                             value: value ?? self.value
@@ -1333,7 +1333,7 @@ struct InitializerRequirementTests {
                     ///   - id: The new value for `id`, or `nil` to keep the current value.
                     /// - Returns: A new instance with the specified modifications.
                     func copying(
-                        id: (Int)? = nil
+                        id: Int? = nil
                     ) -> User {
                         User(
                             id: id ?? self.id
@@ -1388,7 +1388,7 @@ struct InitializerRequirementTests {
                         ///   - value: The new value for `value`, or `nil` to keep the current value.
                         /// - Returns: A new instance with the specified modifications.
                         func copying(
-                            value: (Int)? = nil
+                            value: Int? = nil
                         ) -> Box {
                             Box(
                                 value: value ?? self.value
@@ -1459,8 +1459,8 @@ struct InitializerRequirementTests {
                     ///   - age: The new value for `age`, or `nil` to keep the current value.
                     /// - Returns: A new instance with the specified modifications.
                     func copying(
-                        name: (String)? = nil,
-                        age: (Int)? = nil
+                        name: String? = nil,
+                        age: Int? = nil
                     ) -> User {
                         User(
                             name: name ?? self.name,

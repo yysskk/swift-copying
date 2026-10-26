@@ -25,8 +25,8 @@ struct ExpansionTests {
                     ///   - age: The new value for `age`, or `nil` to keep the current value.
                     /// - Returns: A new instance with the specified modifications.
                     func copying(
-                        name: (String)? = nil,
-                        age: (Int)? = nil
+                        name: String? = nil,
+                        age: Int? = nil
                     ) -> Person {
                         Person(
                             name: name ?? self.name,
@@ -70,8 +70,8 @@ struct ExpansionTests {
                     ///   - username: The new value for `username`, or `nil` to keep the current value.
                     /// - Returns: A new instance with the specified modifications.
                     func copying(
-                        id: (Int)? = nil,
-                        username: (String)? = nil
+                        id: Int? = nil,
+                        username: String? = nil
                     ) -> User {
                         User(
                             id: id ?? self.id,
@@ -115,8 +115,8 @@ struct ExpansionTests {
                     ///   - value: The new value for `value`, or `nil` to keep the current value.
                     /// - Returns: A new instance with the specified modifications.
                     func copying(
-                        id: (Int)? = nil,
-                        value: (Int)? = nil
+                        id: Int? = nil,
+                        value: Int? = nil
                     ) -> Counter {
                         Counter(
                             id: id ?? self.id,
@@ -150,8 +150,8 @@ struct ExpansionTests {
                     ///   - value: The new value for `value`, or `nil` to keep the current value; pass `.some(nil)` to reset it to `nil`.
                     /// - Returns: A new instance with the specified modifications.
                     func copying(
-                        name: (String)? = nil,
-                        value: (Int?)? = nil
+                        name: String? = nil,
+                        value: Int?? = nil
                     ) -> Config {
                         Config(
                             name: name ?? self.name,
@@ -193,10 +193,10 @@ struct ExpansionTests {
                     ///   - delay: The new value for `delay`, or `nil` to keep the current value.
                     /// - Returns: A new instance with the specified modifications.
                     func copying(
-                        timeout: (Optional<Int>)? = nil,
-                        retries: (Swift.Optional<Int>)? = nil,
-                        jitter: ((Int?))? = nil,
-                        delay: (MaybeInt)? = nil
+                        timeout: Optional<Int>? = nil,
+                        retries: Swift.Optional<Int>? = nil,
+                        jitter: (Int?)? = nil,
+                        delay: MaybeInt? = nil
                     ) -> Config {
                         Config(
                             timeout: timeout ?? self.timeout,
@@ -236,8 +236,8 @@ struct ExpansionTests {
                     ///   - subtitle: The new value for `subtitle`, or `nil` to keep the current value; pass `.some(nil)` to reset it to `nil`.
                     /// - Returns: A new instance with the specified modifications.
                     func copying(
-                        title: (String)? = nil,
-                        subtitle: (String?)? = nil
+                        title: String? = nil,
+                        subtitle: String?? = nil
                     ) -> Screen {
                         Screen(
                             title: title ?? self.title,
@@ -272,7 +272,7 @@ struct ExpansionTests {
                     ///   - subtitle: The new value for `subtitle`, or `nil` to keep the current value; pass `.some(nil)` to reset it to `nil`.
                     /// - Returns: A new instance with the specified modifications.
                     func copying(
-                        subtitle: (String?)? = nil
+                        subtitle: String?? = nil
                     ) -> Screen {
                         Screen(
                             subtitle: subtitle ?? self.subtitle
@@ -324,7 +324,7 @@ struct ExpansionTests {
                     ///   - value: The new value for `value`, or `nil` to keep the current value.
                     /// - Returns: A new instance with the specified modifications.
                     func copying(
-                        value: (T)? = nil
+                        value: T? = nil
                     ) -> Box<T> {
                         Box(
                             value: value ?? self.value
@@ -357,8 +357,8 @@ struct ExpansionTests {
                     ///   - value: The new value for `value`, or `nil` to keep the current value.
                     /// - Returns: A new instance with the specified modifications.
                     func copying(
-                        key: (K)? = nil,
-                        value: (V)? = nil
+                        key: K? = nil,
+                        value: V? = nil
                     ) -> Pair<K, V> {
                         Pair(
                             key: key ?? self.key,
@@ -397,7 +397,7 @@ struct ExpansionTests {
                     ///   - item: The new value for `item`, or `nil` to keep the current value.
                     /// - Returns: A new instance with the specified modifications.
                     func copying(
-                        item: (T)? = nil
+                        item: T? = nil
                     ) -> Container<T> {
                         Container(
                             item: item ?? self.item
@@ -435,7 +435,7 @@ struct ExpansionTests {
                     ///   - data: The new value for `data`, or `nil` to keep the current value.
                     /// - Returns: A new instance with the specified modifications.
                     func copying(
-                        data: (T)? = nil
+                        data: T? = nil
                     ) -> Storage<T> {
                         Storage(
                             data: data ?? self.data
@@ -467,7 +467,7 @@ struct ExpansionTests {
                     ///   - label: The new value for `label`, or `nil` to keep the current value.
                     /// - Returns: A new instance with the specified modifications.
                     func copying(
-                        label: (String)? = nil
+                        label: String? = nil
                     ) -> Bundle<repeat each T> {
                         Bundle(
                             label: label ?? self.label
@@ -502,8 +502,8 @@ struct ExpansionTests {
                     ///   - count: The new value for `count`, or `nil` to keep the current value.
                     /// - Returns: A new instance with the specified modifications.
                     func copying(
-                        label: (Label)? = nil,
-                        count: (Int)? = nil
+                        label: Label? = nil,
+                        count: Int? = nil
                     ) -> Group<Label, repeat each Item> {
                         Group(
                             label: label ?? self.label,
@@ -537,8 +537,8 @@ struct ExpansionTests {
                     ///   - mapping: The new value for `mapping`, or `nil` to keep the current value.
                     /// - Returns: A new instance with the specified modifications.
                     func copying(
-                        items: ([String])? = nil,
-                        mapping: ([String: Int])? = nil
+                        items: [String]? = nil,
+                        mapping: [String: Int]? = nil
                     ) -> Container {
                         Container(
                             items: items ?? self.items,
@@ -608,11 +608,66 @@ struct ExpansionTests {
                     /// - Returns: A new instance with the specified modifications.
                     func copying(
                         value: (any P)? = nil,
-                        values: ([any P])? = nil
+                        values: [any P]? = nil
                     ) -> Wrapper {
                         Wrapper(
                             value: value ?? self.value,
                             values: values ?? self.values
+                        )
+                    }
+                }
+                """,
+            macros: testMacros
+        )
+    }
+
+    @Test("Copying macro parenthesizes a parameter type only where the optional mark needs it")
+    func copyingMacroParenthesizesParameterTypeOnlyWhereNeeded() {
+        assertMacroExpansionForTesting(
+            """
+            @Copying
+            struct Shapes {
+                let name: Swift.String
+                let pair: (Int, Int)
+                let kind: Int.Type
+                let anyKind: any Equatable.Type
+                let key: any Hashable & Sendable
+                let handler: @Sendable () -> Void
+            }
+            """,
+            expandedSource: """
+                struct Shapes {
+                    let name: Swift.String
+                    let pair: (Int, Int)
+                    let kind: Int.Type
+                    let anyKind: any Equatable.Type
+                    let key: any Hashable & Sendable
+                    let handler: @Sendable () -> Void
+
+                    /// Creates a copy of this instance with the specified properties modified.
+                    /// - Parameters:
+                    ///   - name: The new value for `name`, or `nil` to keep the current value.
+                    ///   - pair: The new value for `pair`, or `nil` to keep the current value.
+                    ///   - kind: The new value for `kind`, or `nil` to keep the current value.
+                    ///   - anyKind: The new value for `anyKind`, or `nil` to keep the current value.
+                    ///   - key: The new value for `key`, or `nil` to keep the current value.
+                    ///   - handler: The new value for `handler`, or `nil` to keep the current value.
+                    /// - Returns: A new instance with the specified modifications.
+                    func copying(
+                        name: Swift.String? = nil,
+                        pair: (Int, Int)? = nil,
+                        kind: Int.Type? = nil,
+                        anyKind: (any Equatable.Type)? = nil,
+                        key: (any Hashable & Sendable)? = nil,
+                        handler: (@Sendable () -> Void)? = nil
+                    ) -> Shapes {
+                        Shapes(
+                            name: name ?? self.name,
+                            pair: pair ?? self.pair,
+                            kind: kind ?? self.kind,
+                            anyKind: anyKind ?? self.anyKind,
+                            key: key ?? self.key,
+                            handler: handler ?? self.handler
                         )
                     }
                 }
