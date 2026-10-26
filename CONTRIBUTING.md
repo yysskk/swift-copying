@@ -4,7 +4,7 @@ Thanks for your interest in improving swift-copying! This guide covers how to se
 
 ## Development setup
 
-You need a Swift 6.2 or later toolchain (the CI also builds on Swift 6.3).
+You need a Swift 6.2 or later toolchain (the CI also builds on Swift 6.3 and 6.4, and lints and builds the documentation with the latest of them).
 
 ```sh
 git clone https://github.com/yysskk/swift-copying.git
