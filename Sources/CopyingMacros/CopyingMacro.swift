@@ -31,6 +31,10 @@ struct CopyingMacro: MemberMacro {
             throw CopyingDiagnostic.noStoredProperties.error(at: node)
         }
 
+        // An isolation no method can have is an error, so it is settled before anything
+        // the macro only warns about.
+        let isolation = try MethodIsolation(forMethodOf: declaration, copying: storedProperties)
+
         // The method and the initializer the Fix-It writes share one level, so a copy
         // is never buildable from somewhere the state it carries is hidden.
         let accessLevel = AccessLevel.forGeneratedMembers(
@@ -84,7 +88,7 @@ struct CopyingMacro: MemberMacro {
                 typeName: target.typeName,
                 genericParameterClause: target.genericParameterClause,
                 accessLevel: accessLevel,
-                isolation: MethodIsolation(forMethodOf: declaration, copying: storedProperties),
+                isolation: isolation,
                 storedProperties: storedProperties
             )
         ]

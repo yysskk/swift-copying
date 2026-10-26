@@ -1,3 +1,4 @@
+import SwiftDiagnostics
 import SwiftSyntax
 
 /// The actor isolation the macro gives the `copying` method it generates.
@@ -28,17 +29,42 @@ extension MethodIsolation {
     /// Only `@MainActor` is recognized. A custom global actor, such as `@DataActor`,
     /// reads exactly like a property wrapper attribute, and which of the two an
     /// attribute names is decided by a declaration a macro cannot see.
+    ///
+    /// - Throws: A ``SwiftDiagnostics/DiagnosticsError`` when `declaration` is an
+    ///   actor that copies a main-actor property alongside a mutable property of its
+    ///   own. The method would have to be isolated to the main actor to read the one
+    ///   and to the actor to read the other, and a method is isolated to one actor at
+    ///   most, so every such property of the actor's is reported.
     init(
         forMethodOf declaration: some DeclGroupSyntax,
         copying storedProperties: [StoredProperty]
-    ) {
+    ) throws {
         let isReferenceType = declaration.is(ClassDeclSyntax.self) || declaration.is(ActorDeclSyntax.self)
         guard isReferenceType,
             !declaration.attributes.containsMainActor,
-            storedProperties.contains(where: \.isMainActorIsolated)
+            let mainActorProperty = storedProperties.first(where: { $0.isolation == .mainActor })
         else {
             self = .inherited
             return
+        }
+
+        // A `let` is left alone: an actor's constant of a `Sendable` type can be read
+        // from the main actor, and whether a type is `Sendable` is not something its
+        // spelling says. A `var` of the actor's own can only ever be read on the actor.
+        let actorIsolatedProperties =
+            declaration.is(ActorDeclSyntax.self)
+            ? storedProperties.filter { $0.isolation == .inherited && $0.isMutable } : []
+        guard actorIsolatedProperties.isEmpty else {
+            throw DiagnosticsError(
+                diagnostics: actorIsolatedProperties.map { property in
+                    CopyingDiagnostic
+                        .mixedActorIsolation(
+                            propertyName: property.argumentLabel,
+                            mainActorPropertyName: mainActorProperty.argumentLabel
+                        )
+                        .diagnostic(at: property.binding)
+                }
+            )
         }
         self = .mainActor
     }

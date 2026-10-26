@@ -87,6 +87,193 @@ struct IsolationTests {
         )
     }
 
+    @Test("Copying macro rejects an actor that copies its own mutable property alongside a main-actor one")
+    func copyingMacroRejectsMixedActorIsolation() {
+        assertMacroExpansionForTesting(
+            """
+            @Copying
+            actor Session {
+                @MainActor var title: String
+                var count: Int
+                var `default`: Bool
+
+                init(title: String, count: Int, default: Bool) {
+                    self.title = title
+                    self.count = count
+                    self.default = `default`
+                }
+            }
+            """,
+            expandedSource: """
+                actor Session {
+                    @MainActor var title: String
+                    var count: Int
+                    var `default`: Bool
+
+                    init(title: String, count: Int, default: Bool) {
+                        self.title = title
+                        self.count = count
+                        self.default = `default`
+                    }
+                }
+                """,
+            diagnostics: [
+                DiagnosticSpec(
+                    id: MessageID(domain: "CopyingMacros", id: "mixedActorIsolation"),
+                    message:
+                        "@Copying cannot copy 'count' alongside main-actor property 'title': 'copying' would have to be isolated to both the actor and the main actor; move the main-actor state out of the actor",
+                    line: 4,
+                    column: 9
+                ),
+                DiagnosticSpec(
+                    id: MessageID(domain: "CopyingMacros", id: "mixedActorIsolation"),
+                    message:
+                        "@Copying cannot copy 'default' alongside main-actor property 'title': 'copying' would have to be isolated to both the actor and the main actor; move the main-actor state out of the actor",
+                    line: 5,
+                    column: 9
+                ),
+            ],
+            macros: testMacros
+        )
+    }
+
+    @Test("Copying macro isolates the method of an actor whose own copied state the main actor can read")
+    func copyingMacroWithMainActorPropertyAndReadableActorState() {
+        assertMacroExpansionForTesting(
+            """
+            @Copying
+            actor Session {
+                @MainActor var title: String
+                let id: Int
+                nonisolated(unsafe) var hits: Int
+
+                init(title: String, id: Int, hits: Int) {
+                    self.title = title
+                    self.id = id
+                    self.hits = hits
+                }
+            }
+            """,
+            expandedSource: """
+                actor Session {
+                    @MainActor var title: String
+                    let id: Int
+                    nonisolated(unsafe) var hits: Int
+
+                    init(title: String, id: Int, hits: Int) {
+                        self.title = title
+                        self.id = id
+                        self.hits = hits
+                    }
+
+                    /// Creates a copy of this instance with the specified properties modified.
+                    /// - Parameters:
+                    ///   - title: The new value for `title`, or `nil` to keep the current value.
+                    ///   - id: The new value for `id`, or `nil` to keep the current value.
+                    ///   - hits: The new value for `hits`, or `nil` to keep the current value.
+                    /// - Returns: A new instance with the specified modifications.
+                    @MainActor func copying(
+                        title: (String)? = nil,
+                        id: (Int)? = nil,
+                        hits: (Int)? = nil
+                    ) -> Session {
+                        Session(
+                            title: title ?? self.title,
+                            id: id ?? self.id,
+                            hits: hits ?? self.hits
+                        )
+                    }
+                }
+                """,
+            macros: testMacros
+        )
+    }
+
+    @Test("Copying macro leaves an actor's mutable state alone when nothing it copies is on the main actor")
+    func copyingMacroWithUncopiedMainActorPropertyInActor() {
+        assertMacroExpansionForTesting(
+            """
+            @Copying
+            actor Session {
+                @MainActor var summary: String { "" }
+                var count: Int
+
+                init(count: Int) {
+                    self.count = count
+                }
+            }
+            """,
+            expandedSource: """
+                actor Session {
+                    @MainActor var summary: String { "" }
+                    var count: Int
+
+                    init(count: Int) {
+                        self.count = count
+                    }
+
+                    /// Creates a copy of this instance with the specified properties modified.
+                    /// - Parameters:
+                    ///   - count: The new value for `count`, or `nil` to keep the current value.
+                    /// - Returns: A new instance with the specified modifications.
+                    func copying(
+                        count: (Int)? = nil
+                    ) -> Session {
+                        Session(
+                            count: count ?? self.count
+                        )
+                    }
+                }
+                """,
+            macros: testMacros
+        )
+    }
+
+    @Test("Copying macro lets a class copy a mutable property alongside a main-actor one")
+    func copyingMacroWithMainActorAndMutablePropertyInClass() {
+        assertMacroExpansionForTesting(
+            """
+            @Copying
+            final class Document {
+                @MainActor var title: String
+                var revision: Int
+
+                init(title: String, revision: Int) {
+                    self.title = title
+                    self.revision = revision
+                }
+            }
+            """,
+            expandedSource: """
+                final class Document {
+                    @MainActor var title: String
+                    var revision: Int
+
+                    init(title: String, revision: Int) {
+                        self.title = title
+                        self.revision = revision
+                    }
+
+                    /// Creates a copy of this instance with the specified properties modified.
+                    /// - Parameters:
+                    ///   - title: The new value for `title`, or `nil` to keep the current value.
+                    ///   - revision: The new value for `revision`, or `nil` to keep the current value.
+                    /// - Returns: A new instance with the specified modifications.
+                    @MainActor func copying(
+                        title: (String)? = nil,
+                        revision: (Int)? = nil
+                    ) -> Document {
+                        Document(
+                            title: title ?? self.title,
+                            revision: revision ?? self.revision
+                        )
+                    }
+                }
+                """,
+            macros: testMacros
+        )
+    }
+
     @Test("Copying macro places the isolation before the access level")
     func copyingMacroWithMainActorPropertyInPublicClass() {
         assertMacroExpansionForTesting(
