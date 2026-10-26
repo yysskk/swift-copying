@@ -421,7 +421,7 @@ struct InitializerRequirementTests {
                         `default`: (String)? = nil
                     ) -> Theme {
                         Theme(
-                            `default`: `default` ?? self.`default`
+                            default: `default` ?? self.`default`
                         )
                     }
                 }
@@ -451,7 +451,7 @@ struct InitializerRequirementTests {
                         `default`: (String)? = nil
                     ) -> Theme {
                         Theme(
-                            `default`: `default` ?? self.`default`
+                            default: `default` ?? self.`default`
                         )
                     }
                 }

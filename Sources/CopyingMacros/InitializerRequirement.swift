@@ -24,9 +24,10 @@ struct InitializerRequirement {
     }
 
     /// The required initializer spelled the way Swift writes a compound name,
-    /// e.g. `init(id:username:isActive:)`.
+    /// e.g. `init(id:username:isActive:)`, with each label escaped only where a label
+    /// needs it — see ``StoredProperty/callLabel``.
     var signature: String {
-        "init(\(argumentLabels.map { "\($0):" }.joined()))"
+        "init(\(storedProperties.map { "\($0.callLabel):" }.joined()))"
     }
 
     /// What keeps `declaration` from supplying the initializer the copy needs, or `nil`

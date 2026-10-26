@@ -28,7 +28,7 @@ enum CopyingMethodRenderer {
             .joined(separator: ",\n")
         let arguments =
             storedProperties
-            .map { "        \($0.name): \($0.name) ?? self.\($0.name)" }
+            .map { "        \($0.callLabel): \($0.name) ?? self.\($0.name)" }
             .joined(separator: ",\n")
 
         // A single-expression body relies on the implicit `return` (SE-0255), which

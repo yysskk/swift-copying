@@ -226,6 +226,21 @@ struct CopyingTests {
         #expect(copied.weight == 400)
     }
 
+    @Test("Generated code for escaped property names that labels take bare compiles and works correctly")
+    func escapedPropertyNamesCompileTest() {
+        @Copying
+        struct Flags {
+            var `inout`: Bool
+            var `title`: String
+        }
+
+        let flags = Flags(`inout`: false, title: "open")
+        let copied = flags.copying(`inout`: true)
+
+        #expect(copied.`inout` == true)
+        #expect(copied.title == "open")
+    }
+
     @Test("Generated code for a struct with a parameter pack compiles and works correctly")
     func parameterPackCompileTest() {
         @Copying

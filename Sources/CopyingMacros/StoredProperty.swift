@@ -1,4 +1,5 @@
 import SwiftDiagnostics
+import SwiftParser
 import SwiftSyntax
 
 /// A single stored property that the generated `copying` method can change.
@@ -6,9 +7,12 @@ struct StoredProperty {
     /// The property's name, spelled the way the declaration spells it — backticks
     /// included — as generated code has to write it to refer to the property.
     let name: String
-    /// The property's name without the backticks that escape it, which is how an
-    /// initializer's argument label and a compound name such as `init(default:)`
-    /// spell it.
+    /// The property's name without the backticks that escape it, which is the
+    /// identifier an initializer's parameter label is compared with.
+    ///
+    /// This is not always valid Swift on its own: a raw identifier (SE-0451) such as
+    /// `` `the value` `` is spelled here as `the value`. Generated code spells a label
+    /// as ``callLabel`` instead.
     let argumentLabel: String
     /// The property's type, spelled the way the declaration spells it.
     let type: TypeSyntax
@@ -33,6 +37,30 @@ struct StoredProperty {
             return type
         }
         return TypeSyntax(OptionalTypeSyntax(wrappedType: implicitlyUnwrapped.wrappedType.trimmed))
+    }
+}
+
+extension StoredProperty {
+    /// The property's name as an argument label, the way a call passing it writes it:
+    /// `default:` for a property declared `` `default` ``, but `` `inout`: `` and
+    /// `` `the value`: `` for the names that cannot be a label without backticks.
+    ///
+    /// A label takes nearly every keyword unescaped, and Swift warns about backticks
+    /// that are not needed there ("keyword 'default' does not need to be escaped in
+    /// argument list"), so writing ``name`` would make the generated call warn in
+    /// every build of a type that escapes a property's name. Which names do need them
+    /// — `inout`, and any raw identifier — is settled by parsing a call that passes
+    /// the bare name, so the answer follows the parser rather than a list kept here.
+    var callLabel: String {
+        var parser = Parser("f(\(argumentLabel): 0)")
+        let call = ExprSyntax.parse(from: &parser)
+        guard !call.hasError,
+            let label = call.as(FunctionCallExprSyntax.self)?.arguments.first?.label,
+            label.text == argumentLabel
+        else {
+            return name
+        }
+        return argumentLabel
     }
 }
 
