@@ -49,8 +49,11 @@ swift format lint --strict --recursive Sources Tests Package.swift
 ## Language features
 
 Every target is built with the upcoming features listed in `swiftSettings` at the top of
-`Package.swift`: `ExistentialAny`, `InternalImportsByDefault`, and
-`MemberImportVisibility`. In practice that means:
+`Package.swift`: `ExistentialAny`, `InternalImportsByDefault`,
+`MemberImportVisibility`, `NonisolatedNonsendingByDefault`, and
+`InferIsolatedConformances`. The last two are the concurrency features a new Xcode
+project enables as "Approachable Concurrency", so the runtime tests show that the
+generated code compiles in such a project. In practice that means:
 
 - Spell an existential with `any`, including in a metatype: `[any Macro.Type]`,
   `asProtocol((any NamedDeclSyntax).self)`.
@@ -59,6 +62,8 @@ Every target is built with the upcoming features listed in `swiftSettings` at th
   `@testable import CopyingMacros`.
 - Import every module whose members a file uses, even when another import happens to
   re-export it.
+- A nonisolated `async` function runs on its caller's actor. Mark one `@concurrent`
+  where it has to leave that actor.
 
 A new target should pass `swiftSettings: swiftSettings` like the existing ones.
 

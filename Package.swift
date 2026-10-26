@@ -13,6 +13,12 @@ let swiftSettings: [SwiftSetting] = [
     .enableUpcomingFeature("InternalImportsByDefault"),
     // SE-0444: a member is visible only through a module the file imports itself.
     .enableUpcomingFeature("MemberImportVisibility"),
+    // SE-0461: a nonisolated `async` function runs on its caller's actor unless it
+    // is marked `@concurrent`.
+    .enableUpcomingFeature("NonisolatedNonsendingByDefault"),
+    // SE-0470: a conformance of a global-actor-isolated type is isolated to that
+    // actor when the conformance needs it.
+    .enableUpcomingFeature("InferIsolatedConformances"),
 ]
 
 let package = Package(
