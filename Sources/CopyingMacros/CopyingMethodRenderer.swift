@@ -38,7 +38,7 @@ enum CopyingMethodRenderer {
             /// - Parameters:
             \(raw: documentation)
             /// - Returns: A new instance with the specified modifications.
-            \(raw: isolation.rendered)\(raw: accessLevel.rendered)func copying(
+            \(isolation.attributes)\(accessLevel.modifiers)func copying(
             \(raw: parameters)
             ) -> \(raw: fullTypeName) {
                 \(raw: typeName)(

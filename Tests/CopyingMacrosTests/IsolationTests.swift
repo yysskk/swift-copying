@@ -1,9 +1,23 @@
 import SwiftDiagnostics
+import SwiftSyntax
 import SwiftSyntaxMacrosGenericTestSupport
 import Testing
 
+@testable import CopyingMacros
+
 @Suite("CopyingMacro Isolation Tests")
 struct IsolationTests {
+    @Test(
+        "Each method isolation contributes the attribute Swift spells for it",
+        arguments: [
+            (MethodIsolation.inherited, ""),
+            (.mainActor, "@MainActor "),
+        ]
+    )
+    func methodIsolationAttributes(isolation: MethodIsolation, expected: String) {
+        #expect(isolation.attributes.description == expected)
+    }
+
     @Test("Copying macro isolates the method of a class with a main-actor property")
     func copyingMacroWithMainActorPropertyInClass() {
         assertMacroExpansionForTesting(

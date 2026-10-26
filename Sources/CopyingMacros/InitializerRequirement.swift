@@ -132,7 +132,7 @@ extension InitializerRequirement {
         let bodyIndentation = memberIndentation + step
 
         let lines =
-            ["\(accessLevel.rendered)init(\(parameters)) {"]
+            ["\(accessLevel.modifiers)init(\(parameters)) {"]
             + storedProperties.map { "\(bodyIndentation)self.\($0.name) = \($0.name)" }
             + ["\(memberIndentation)}"]
         // The first line carries no indentation of its own; the member's leading trivia
